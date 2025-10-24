@@ -1,7 +1,7 @@
 # WOLTAXI MongoDB Atlas Simple Connection Test
 
 param(
-    [string]$Password = ""
+    [SecureString]$Password = (ConvertTo-SecureString "" -AsPlainText -Force)
 )
 
 $ATLAS_BASE = "mongodb+srv://woltaxi_db_user"
@@ -19,12 +19,11 @@ if ([string]::IsNullOrEmpty($Password)) {
     Write-Host "1. MongoDB Compass: https://www.mongodb.com/products/compass" -ForegroundColor Gray
     Write-Host "2. MongoDB Shell: https://docs.mongodb.com/mongodb-shell/install/" -ForegroundColor Gray
     Write-Host "3. Your connection string:" -ForegroundColor Gray
-    Write-Host "   $ATLAS_BASE:<password>@$ATLAS_CLUSTER/$ATLAS_DATABASE?retryWrites=true&w=majority" -ForegroundColor Gray
+    Write-Host "   ${ATLAS_BASE}:<password>@$ATLAS_CLUSTER/$ATLAS_DATABASE?retryWrites=true&w=majority" -ForegroundColor Gray
     return
 }
 
-# Build connection string
-$ConnectionString = "$ATLAS_BASE`:$Password@$ATLAS_CLUSTER/$ATLAS_DATABASE" + "?retryWrites=true&w=majority"
+# Build connection string (removed unused variable)
 $SafeConnectionString = "$ATLAS_BASE`:****@$ATLAS_CLUSTER/$ATLAS_DATABASE" + "?retryWrites=true&w=majority"
 
 Write-Host "🔗 Testing connection to:" -ForegroundColor Cyan

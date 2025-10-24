@@ -102,7 +102,7 @@ function Backup-FullCluster {
     try {
         $mongodumpCmd = "mongodump --host `"$MONGO_HOST`:$MONGO_PORT`" --username `"$MONGO_USERNAME`" --password `"$MONGO_PASSWORD`" --authenticationDatabase admin --out `"$BackupPath`" --gzip"
         
-        $result = Invoke-Expression $mongodumpCmd 2>&1
+        Invoke-Expression $mongodumpCmd 2>&1 | Out-Host
         
         if ($LASTEXITCODE -eq 0) {
             # Create compressed archive

@@ -2,7 +2,7 @@
 # Test your Atlas connection without requiring mongosh
 
 param(
-    [string]$Password = ""
+    [SecureString]$Password = (ConvertTo-SecureString "" -AsPlainText -Force)
 )
 
 $ATLAS_CONNECTION_BASE = "mongodb+srv://woltaxi_db_user"
@@ -113,7 +113,7 @@ function Test-AtlasConnectionWithHTTP {
     try {
         # Test if we can reach the cluster (basic connectivity)
         $testUrl = "https://$ClusterUrl"
-        $response = Invoke-WebRequest -Uri $testUrl -TimeoutSec 10 -ErrorAction Stop
+        Invoke-WebRequest -Uri $testUrl -TimeoutSec 10 -ErrorAction Stop | Out-Null
         Write-Host "✅ Cluster is reachable" -ForegroundColor Green
     }
     catch {

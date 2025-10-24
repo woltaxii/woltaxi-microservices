@@ -5,7 +5,7 @@ param(
     [switch]$InstallTools,
     [switch]$TestConnection,
     [switch]$SetupEnvironment,
-    [string]$AtlasPassword = ""
+    [SecureString]$AtlasPassword = (ConvertTo-SecureString "" -AsPlainText -Force)
 )
 
 function Write-Title {
@@ -50,7 +50,7 @@ function Install-ChocoIfNeeded {
         Write-Info "Installing Chocolatey package manager..."
         Set-ExecutionPolicy Bypass -Scope Process -Force
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-        iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+        Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
         Write-Success "Chocolatey installed successfully!"
         return $true
     }
@@ -118,7 +118,7 @@ function Install-DevelopmentTools {
 }
 
 function Test-AtlasConnection {
-    param([string]$Password)
+    param([SecureString]$Password)
     
     Write-Title "Testing MongoDB Atlas Connection"
     
@@ -171,8 +171,8 @@ function Test-AtlasConnection {
     }
 }
 
-function Setup-Environment {
-    param([string]$Password)
+function Initialize-Environment {
+    param([SecureString]$Password)
     
     Write-Title "Setting up WOLTAXI Atlas Environment"
     
@@ -283,7 +283,7 @@ function Show-Status {
     $services = @("eureka-server", "api-gateway", "user-service", "driver-service", "ride-service")
     foreach ($service in $services) {
         $serviceExists = Test-Path ".\$service"
-        Write-Host "   $service: $(if ($serviceExists) { '✅ Found' } else { '❌ Missing' })" -ForegroundColor $(if ($serviceExists) { 'Green' } else { 'Red' })
+        Write-Host "   ${service}: $(if ($serviceExists) { '✅ Found' } else { '❌ Missing' })" -ForegroundColor $(if ($serviceExists) { 'Green' } else { 'Red' })
     }
 }
 
