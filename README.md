@@ -8,6 +8,16 @@ WOLTAXI'yi anında deploy etmek için yukarıdaki butona tıklayın!
 
 ## 🚀 WOLTAXI Enterprise Microservices
 
+### 🪟 Self-Hosting (Windows) – Hızlı Başlangıç
+- Hızlı rehber: `docs/SELF-HOSTING-QUICKSTART.md`
+- Detaylı kurulum: `docs/SERVER-SETUP-WINDOWS.md`
+
+Özet adımlar:
+1) Portable JDK/Maven: `scripts/setup-portable-java-maven.ps1`
+2) Build: `scripts/build-services-portable.ps1`
+3) Çalıştır: `scripts/run-eureka.ps1` ve `scripts/run-gateway.ps1`
+4) HTTPS + Domain: `scripts/setup-caddy.ps1` (Admin gerekli)
+
 ### 1. Önkoşullar
 - Docker & Docker Compose
 - Java 17+
