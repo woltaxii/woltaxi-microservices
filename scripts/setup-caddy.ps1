@@ -47,7 +47,9 @@ Assert-Admin
 Try-Install-Caddy
 
 # Locate caddy.exe
-$caddyExe = (Get-Command caddy -ErrorAction SilentlyContinue)?.Source
+$gc = Get-Command caddy -ErrorAction SilentlyContinue
+$caddyExe = $null
+if($gc){ $caddyExe = $gc.Source }
 if(-not $caddyExe){ $caddyExe = 'C:\Program Files\caddy\caddy.exe' }
 if(-not (Test-Path $caddyExe)){
   throw "caddy.exe not found. Adjust path and retry."
