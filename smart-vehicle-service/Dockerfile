@@ -95,7 +95,7 @@ RUN pip3 install --no-cache-dir \
     tqdm==4.66.1 \
     joblib==1.3.2 \
     psutil==5.9.6 \
-    h5py==3.10.0 \
+    h5py==3.10.0
     # Point cloud processing
     # open3d==0.18.0 # Commented out due to potential compatibility issues
     
