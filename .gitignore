@@ -1,5 +1,9 @@
 # WolTaxi Microservices - Comprehensive Ecosystem
 
+# Netlify deployment'ı bozan dosyalar (emoji ve # içeren)
+"# 📋 WOLTAXI PROJESİ KAYITLARI VE ÇALIŞM.md"
+"# 🚀 WOLTAXI PROJESİ - MASAÜSTÜ YEDEK DO.md"
+
 ## Project Structure
 .DS_Store
 *.log
