@@ -1,0 +1,310 @@
+# WOLTAXI Marketing Service Configuration
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+server:
+  port: 8088
+  servlet:
+    context-path: /api/v1/marketing
+
+# =============================================================================
+# SPRING APPLICATION CONFIGURATION
+# =============================================================================
+spring:
+  application:
+    name: marketing-service
+  
+  # =============================================================================
+  # DATABASE CONFIGURATION
+  # =============================================================================
+  datasource:
+    url: jdbc:postgresql://postgres:5432/woltaxi
+    username: woltaxi_user
+    password: woltaxi_pass_2024
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 600000
+      connection-timeout: 20000
+      
+  # =============================================================================
+  # JPA CONFIGURATION
+  # =============================================================================
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+        format_sql: false
+        
+  # =============================================================================
+  # REDIS CONFIGURATION
+  # =============================================================================
+  data:
+    redis:
+      host: redis
+      port: 6379
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
+          
+  # =============================================================================
+  # CACHE CONFIGURATION
+  # =============================================================================
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000 # 1 hour
+      cache-null-values: false
+      
+  # =============================================================================
+  # KAFKA CONFIGURATION
+  # =============================================================================
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: marketing-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.woltaxi.marketing.model.event"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      
+  # =============================================================================
+  # SECURITY CONFIGURATION
+  # =============================================================================
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/woltaxi
+
+# =============================================================================
+# EUREKA CLIENT CONFIGURATION
+# =============================================================================
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+
+# =============================================================================
+# MANAGEMENT & MONITORING
+# =============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  health:
+    diskspace:
+      enabled: true
+    redis:
+      enabled: true
+    db:
+      enabled: true
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  level:
+    com.woltaxi.marketing: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# =============================================================================
+# WOLTAXI MARKETING CONFIGURATION
+# =============================================================================
+woltaxi:
+  marketing:
+    # Global Campaign Settings
+    campaigns:
+      max-global-campaigns: 100
+      max-localized-per-global: 50
+      default-frequency-cap: 3
+      performance-check-interval: "0 0 */6 * * *" # Every 6 hours
+      
+    # AI Optimization Settings
+    ai:
+      enabled: true
+      openai:
+        api-key: ${OPENAI_API_KEY:your-openai-api-key}
+        model: gpt-4
+        max-tokens: 1000
+      optimization:
+        min-data-points: 100
+        evaluation-days: 3
+        auto-apply-threshold: 0.05 # 5% improvement threshold
+        
+    # Translation Settings
+    translation:
+      enabled: true
+      google:
+        api-key: ${GOOGLE_TRANSLATE_API_KEY:your-google-translate-api-key}
+        project-id: ${GOOGLE_CLOUD_PROJECT_ID:woltaxi-global-marketing}
+      auto-translate: true
+      cache-translations: true
+      
+    # Platform API Configurations
+    platforms:
+      facebook:
+        api-version: v18.0
+        base-url: https://graph.facebook.com
+        rate-limit:
+          requests-per-hour: 200
+          requests-per-day: 4800
+        retry:
+          max-attempts: 3
+          backoff-delay: 1000
+          
+      google:
+        api-version: v14
+        base-url: https://googleads.googleapis.com
+        rate-limit:
+          requests-per-minute: 100
+          operations-per-day: 10000
+        retry:
+          max-attempts: 3
+          backoff-delay: 2000
+          
+      tiktok:
+        api-version: v1.3
+        base-url: https://business-api.tiktok.com/open_api
+        rate-limit:
+          requests-per-minute: 60
+          requests-per-day: 8640
+        retry:
+          max-attempts: 3
+          backoff-delay: 1500
+          
+      twitter:
+        api-version: "12"
+        base-url: https://ads-api.twitter.com
+        rate-limit:
+          requests-per-15min: 300
+          requests-per-day: 28800
+        retry:
+          max-attempts: 3
+          backoff-delay: 1000
+          
+      linkedin:
+        api-version: rest
+        base-url: https://api.linkedin.com
+        rate-limit:
+          requests-per-day: 5000
+          throttle-limit: 100
+        retry:
+          max-attempts: 3
+          backoff-delay: 2000
+          
+    # Performance & Analytics
+    analytics:
+      data-retention-days: 730 # 2 years
+      aggregation-intervals: ["HOURLY", "DAILY", "WEEKLY", "MONTHLY"]
+      real-time-sync: true
+      performance-alerts:
+        enabled: true
+        ctr-threshold: 1.0 # Below 1% CTR
+        cpc-threshold: 5.0 # Above $5 CPC
+        roas-threshold: 2.0 # Below 2x ROAS
+        
+    # Budget & Spending Controls
+    budget:
+      global-daily-limit: 50000.00 # $50,000 USD per day
+      emergency-pause-threshold: 0.8 # Pause at 80% of budget
+      auto-budget-allocation: true
+      currency-conversion:
+        update-interval: "0 0 8 * * *" # Daily at 8 AM
+        api-provider: "exchangerate-api"
+        
+    # Security & Encryption
+    security:
+      encryption:
+        algorithm: AES
+        key-size: 256
+        password: ${JASYPT_ENCRYPTOR_PASSWORD:woltaxi-marketing-secret-2024}
+      api-keys:
+        rotation-days: 90
+        backup-count: 3
+        
+    # Caching Strategy
+    cache:
+      countries: 
+        ttl: 86400 # 24 hours
+      platforms:
+        ttl: 43200 # 12 hours
+      campaigns:
+        ttl: 3600 # 1 hour
+      performance:
+        ttl: 300 # 5 minutes
+      translations:
+        ttl: 604800 # 7 days
+        
+    # Async Processing
+    async:
+      core-pool-size: 10
+      max-pool-size: 50
+      queue-capacity: 1000
+      thread-name-prefix: "woltaxi-marketing-"
+      
+    # Scheduling
+    scheduling:
+      pool-size: 10
+      thread-name-prefix: "woltaxi-marketing-scheduler-"
+      
+# =============================================================================
+# EXTERNAL API KEYS (Environment Variables)
+# =============================================================================
+# These should be set as environment variables in production:
+# - FACEBOOK_APP_ID
+# - FACEBOOK_APP_SECRET
+# - GOOGLE_ADS_DEVELOPER_TOKEN
+# - GOOGLE_ADS_CLIENT_ID
+# - GOOGLE_ADS_CLIENT_SECRET
+# - TIKTOK_APP_ID
+# - TIKTOK_SECRET
+# - TWITTER_API_KEY
+# - TWITTER_API_SECRET
+# - LINKEDIN_CLIENT_ID
+# - LINKEDIN_CLIENT_SECRET
+# - OPENAI_API_KEY
+# - GOOGLE_TRANSLATE_API_KEY
+# - GOOGLE_CLOUD_PROJECT_ID
+# - JASYPT_ENCRYPTOR_PASSWORD

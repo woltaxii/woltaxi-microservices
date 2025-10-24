@@ -1,0 +1,42 @@
+================================================================================
+                    🚀 WOLTAXI NATRO UPLOAD TALİMATI 🚀
+================================================================================
+
+📋 SADECE 3 ADIM - 5 DAKİKA:
+
+1️⃣ DOSYAYI HAZIRLA:
+   - Bu klasöre git: c:\Users\Lon\Documents\woltaxi-microservices\deployment\
+   - "NATRO-UPLOAD-HAZIR.html" dosyasını bul
+   - Dosyaya sağ tık → "Kopyala"
+
+2️⃣ NATRO'YA GİT:
+   - Natro cPanel'e giriş yap
+   - "File Manager" tıkla
+   - "public_html" klasörüne git
+   - Sağ tık → "Upload" 
+   - Kopyaladığın dosyayı seç
+   - "index.html" olarak yeniden adlandır
+
+3️⃣ TEST ET:
+   - https://domain-adiniz.com aç
+   - WOLTAXI sayfası görünmeli!
+   - Çalışıyorsa ✅ TAMAM!
+
+================================================================================
+
+❓ SORUN OLURSA:
+- Dosya bulunamıyor → Yolu kontrol et
+- Upload edilmiyor → Dosya boyutu küçük mü?
+- Sayfa açılmıyor → Domain aktif mi?
+
+📞 YARDıM: GitHub Copilot'a "WOLTAXI upload sorunu" yaz
+
+================================================================================
+                          🎉 BAŞARI SONRASI 🎉
+                         
+Domain'iniz canlı olduğunda:
+1. Google'da "site:domain-adiniz.com" ara
+2. 24 saat içinde listelenecek
+3. Sonraki adım için GitHub Copilot'a yazın!
+
+================================================================================

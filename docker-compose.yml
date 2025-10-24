@@ -1,0 +1,549 @@
+version: '3.8'
+
+services:
+  # Infrastructure Services
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: woltaxi
+      POSTGRES_USER: woltaxi_user
+      POSTGRES_PASSWORD: woltaxi_2024
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=tr_TR.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U woltaxi_user -d woltaxi"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass woltaxi_redis_2024
+    
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+      
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      
+  # WOLTAXI Microservices
+  eureka-server:
+    build: ./eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_PASSWORD=woltaxi-2024-secure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8765:8765"
+    environment:
+      - EUREKA_HOST=eureka-server
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=woltaxi_redis_2024
+      - JWT_SECRET=woltaxi-gateway-secret-2024-enterprise
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8765/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      
+  user-service:
+    build: ./user-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi
+      - DB_USERNAME=woltaxi_user
+      - DB_PASSWORD=woltaxi_2024
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=woltaxi_redis_2024
+      - JWT_SECRET=woltaxi-user-secret-2024
+      - EUREKA_HOST=eureka-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      
+  driver-service:
+    build: ./driver-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi
+      - DB_USERNAME=woltaxi_user
+      - DB_PASSWORD=woltaxi_2024
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=woltaxi_redis_2024
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JWT_SECRET=woltaxi-driver-secret-2024
+      - EUREKA_HOST=eureka-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      
+  ride-service:
+    build: ./ride-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi
+      - DB_USERNAME=woltaxi_user
+      - DB_PASSWORD=woltaxi_2024
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=woltaxi_redis_2024
+      - JWT_SECRET=woltaxi-ride-secret-2024
+      - EUREKA_HOST=eureka-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi
+      - DB_USERNAME=woltaxi_user
+      - DB_PASSWORD=woltaxi_2024
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=woltaxi_redis_2024
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JWT_SECRET=woltaxi-payment-secret-2024
+      - EUREKA_HOST=eureka-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  location-service:
+    build: ./location-service
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi
+      - DB_USERNAME=woltaxi_user
+      - DB_PASSWORD=woltaxi_2024
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=woltaxi_redis_2024
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JWT_SECRET=woltaxi-location-secret-2024
+      - EUREKA_HOST=eureka-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "8086:8086"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi
+      - DB_USERNAME=woltaxi_user
+      - DB_PASSWORD=woltaxi_2024
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=woltaxi_redis_2024
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JWT_SECRET=woltaxi-notification-secret-2024
+      - EUREKA_HOST=eureka-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  subscription-service:
+    build: ./subscription-service
+    ports:
+      - "8087:8087"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi
+      - DB_USERNAME=woltaxi_user
+      - DB_PASSWORD=woltaxi_2024
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=woltaxi_redis_2024
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JWT_SECRET=woltaxi-subscription-secret-2024
+      - EUREKA_HOST=eureka-server
+      - MAIL_HOST=smtp.gmail.com
+      - MAIL_PORT=587
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  marketing-service:
+    build: ./marketing-service
+    ports:
+      - "8088:8088"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi
+      - DB_USERNAME=woltaxi_user
+      - DB_PASSWORD=woltaxi_2024
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=woltaxi_redis_2024
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JWT_SECRET=woltaxi-marketing-secret-2024
+      - EUREKA_HOST=eureka-server
+      # Marketing API Keys (should be set via external secrets in production)
+      - FACEBOOK_APP_ID=${FACEBOOK_APP_ID:-your-facebook-app-id}
+      - FACEBOOK_APP_SECRET=${FACEBOOK_APP_SECRET:-your-facebook-app-secret}
+      - GOOGLE_ADS_DEVELOPER_TOKEN=${GOOGLE_ADS_DEVELOPER_TOKEN:-your-google-ads-token}
+      - GOOGLE_ADS_CLIENT_ID=${GOOGLE_ADS_CLIENT_ID:-your-google-ads-client-id}
+      - GOOGLE_ADS_CLIENT_SECRET=${GOOGLE_ADS_CLIENT_SECRET:-your-google-ads-client-secret}
+      - TIKTOK_APP_ID=${TIKTOK_APP_ID:-your-tiktok-app-id}
+      - TIKTOK_SECRET=${TIKTOK_SECRET:-your-tiktok-secret}
+      - TWITTER_API_KEY=${TWITTER_API_KEY:-your-twitter-api-key}
+      - TWITTER_API_SECRET=${TWITTER_API_SECRET:-your-twitter-api-secret}
+      - LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID:-your-linkedin-client-id}
+      - LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET:-your-linkedin-client-secret}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-your-openai-api-key}
+      - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-your-google-translate-api-key}
+      - GOOGLE_CLOUD_PROJECT_ID=${GOOGLE_CLOUD_PROJECT_ID:-woltaxi-global-marketing}
+      - JASYPT_ENCRYPTOR_PASSWORD=${JASYPT_ENCRYPTOR_PASSWORD:-woltaxi-marketing-secret-2024}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  analytics-service:
+    build: ./analytics-service
+    ports:
+      - "8089:8089"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi
+      - DB_USERNAME=woltaxi_user
+      - DB_PASSWORD=woltaxi_2024
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=woltaxi_redis_2024
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JWT_SECRET=woltaxi-analytics-secret-2024
+      - EUREKA_HOST=eureka-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8089/api/v1/analytics/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  global-performance-service:
+    build: ./global-performance-service
+    ports:
+      - "8090:8090"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi
+      - DB_USERNAME=woltaxi_user
+      - DB_PASSWORD=woltaxi_2024
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=woltaxi_redis_2024
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JWT_SECRET=woltaxi-global-performance-secret-2024
+      - EUREKA_HOST=eureka-server
+      - ANALYTICS_ENGINE_API_KEY=woltaxi-analytics-2025
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-your-openai-api-key}
+      - JASYPT_ENCRYPTOR_PASSWORD=${JASYPT_ENCRYPTOR_PASSWORD:-woltaxi-global-performance-secret-2024}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+      analytics-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Travel Integration Service - Tourism & Travel Booking Platform
+  travel-integration-service:
+    build: ./travel-integration-service
+    ports:
+      - "8092:8092"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi
+      - SPRING_DATASOURCE_USERNAME=woltaxi_user
+      - SPRING_DATASOURCE_PASSWORD=woltaxi_2024
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=woltaxi_redis_2024
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JWT_SECRET=woltaxi-travel-secret-2024
+      # Travel Provider API Keys
+      - TRAVEL_PROVIDERS_AMADEUS_API_KEY=${AMADEUS_API_KEY:-your-amadeus-api-key}
+      - TRAVEL_PROVIDERS_AMADEUS_API_SECRET=${AMADEUS_API_SECRET:-your-amadeus-api-secret}
+      - TRAVEL_PROVIDERS_TURKISH_AIRLINES_API_KEY=${TURKISH_AIRLINES_API_KEY:-your-turkish-airlines-api-key}
+      - TRAVEL_PROVIDERS_PEGASUS_API_KEY=${PEGASUS_API_KEY:-your-pegasus-api-key}
+      - TRAVEL_PROVIDERS_SKYSCANNER_API_KEY=${SKYSCANNER_API_KEY:-your-skyscanner-api-key}
+      - TRAVEL_PROVIDERS_METRO_TURIZM_API_KEY=${METRO_TURIZM_API_KEY:-your-metro-turizm-api-key}
+      - TRAVEL_PROVIDERS_KAMIL_KOC_API_KEY=${KAMIL_KOC_API_KEY:-your-kamil-koc-api-key}
+      - TRAVEL_PROVIDERS_PAMUKKALE_API_KEY=${PAMUKKALE_API_KEY:-your-pamukkale-api-key}
+      - TRAVEL_PROVIDERS_VARAN_API_KEY=${VARAN_API_KEY:-your-varan-api-key}
+      - TRAVEL_PROVIDERS_BOOKING_COM_API_KEY=${BOOKING_COM_API_KEY:-your-booking-com-api-key}
+      - TRAVEL_PROVIDERS_EXPEDIA_API_KEY=${EXPEDIA_API_KEY:-your-expedia-api-key}
+      - TRAVEL_PROVIDERS_HOTELS_COM_API_KEY=${HOTELS_COM_API_KEY:-your-hotels-com-api-key}
+      - TRAVEL_PROVIDERS_AVIS_API_KEY=${AVIS_API_KEY:-your-avis-api-key}
+      - TRAVEL_PROVIDERS_HERTZ_API_KEY=${HERTZ_API_KEY:-your-hertz-api-key}
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus
+    volumes:
+      - ./travel-integration-service/logs:/app/logs
+      - ./travel-integration-service/documents:/app/documents
+    networks:
+      - woltaxi-network
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_started
+      payment-service:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8092/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Emergency Service - Critical Safety System
+  emergency-service:
+    build: ./emergency-service
+    ports:
+      - "8091:8091"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi
+      - SPRING_DATASOURCE_USERNAME=woltaxi_user
+      - SPRING_DATASOURCE_PASSWORD=woltaxi_2024
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=woltaxi_redis_2024
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - WOLTAXI_EMERGENCY_INTEGRATIONS_TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-your-twilio-account-sid}
+      - WOLTAXI_EMERGENCY_INTEGRATIONS_TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-your-twilio-auth-token}
+      - WOLTAXI_EMERGENCY_INTEGRATIONS_TWILIO_EMERGENCY_NUMBER=${EMERGENCY_PHONE_NUMBER:-+1234567890}
+      - WOLTAXI_EMERGENCY_INTEGRATIONS_FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID:-woltaxi-emergency}
+      - WOLTAXI_EMERGENCY_INTEGRATIONS_FIREBASE_SERVICE_ACCOUNT_KEY=${FIREBASE_SERVICE_ACCOUNT_KEY:-/app/firebase-key.json}
+      - WOLTAXI_EMERGENCY_INTEGRATIONS_GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-your-google-maps-api-key}
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus
+      - JWT_SECRET=woltaxi-emergency-secret-2024
+    volumes:
+      - ./emergency-service/logs:/app/logs
+      - ./firebase-key.json:/app/firebase-key.json:ro
+    networks:
+      - woltaxi-network
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # WolKurye Motor Kurye & Paket Teslimat Servisi
+  wolkurye-service:
+    build: ./wolkurye-service
+    ports:
+      - "8093:8093"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi_wolkurye
+      - SPRING_DATASOURCE_USERNAME=woltaxi_user
+      - SPRING_DATASOURCE_PASSWORD=woltaxi_2024
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=woltaxi_redis_2024
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JWT_SECRET=woltaxi-wolkurye-secret-2024
+      # Third Party API Keys for WolKurye
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-your-twilio-account-sid}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-your-twilio-auth-token}
+      - TWILIO_FROM_NUMBER=${TWILIO_FROM_NUMBER:-+90XXXXXXXXX}
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID:-woltaxi-app}
+      - FIREBASE_CREDENTIALS_PATH=${FIREBASE_CREDENTIALS_PATH:-firebase-adminsdk.json}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-your-google-maps-api-key}
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-your-openweather-api-key}
+      # E-commerce Integration API Keys
+      - YEMEKSEPETI_API_KEY=${YEMEKSEPETI_API_KEY:-your-yemeksepeti-api-key}
+      - GETIR_API_KEY=${GETIR_API_KEY:-your-getir-api-key}
+      - TRENDYOL_API_KEY=${TRENDYOL_API_KEY:-your-trendyol-api-key}
+      # Payment Integration Keys
+      - IYZICO_API_KEY=${IYZICO_API_KEY:-your-iyzico-api-key}
+      - IYZICO_SECRET_KEY=${IYZICO_SECRET_KEY:-your-iyzico-secret-key}
+      - PAYTR_MERCHANT_ID=${PAYTR_MERCHANT_ID:-your-paytr-merchant-id}
+      - PAYTR_MERCHANT_KEY=${PAYTR_MERCHANT_KEY:-your-paytr-merchant-key}
+      - PAYTR_MERCHANT_SALT=${PAYTR_MERCHANT_SALT:-your-paytr-merchant-salt}
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus
+    volumes:
+      - ./wolkurye-service/logs:/app/logs
+      - ./uploads/wolkurye:/app/uploads/wolkurye
+      - ./firebase-adminsdk.json:/app/firebase-adminsdk.json:ro
+    networks:
+      - woltaxi-network
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_started
+      payment-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8093/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  woltaxi-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

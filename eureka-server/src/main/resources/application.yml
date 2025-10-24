@@ -1,0 +1,79 @@
+server:
+  port: 8761
+  undertow:
+    threads:
+      worker: 100
+      io: 8
+    buffer-size: 8192
+
+spring:
+  application:
+    name: eureka-server
+  
+  # Security Configuration
+  security:
+    user:
+      name: woltaxi-admin
+      password: ${EUREKA_PASSWORD:woltaxi-2024-secure}
+      roles: ADMIN
+
+eureka:
+  instance:
+    hostname: localhost
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+    
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://woltaxi-admin:${EUREKA_PASSWORD:woltaxi-2024-secure}@${eureka.instance.hostname}:${server.port}/eureka/
+  
+  server:
+    enable-self-preservation: true
+    eviction-interval-timer-in-ms: 15000
+    renewal-percent-threshold: 0.85
+    renewal-threshold-update-interval-ms: 900000
+    peer-eureka-nodes-update-interval-ms: 600000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,refresh
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO
+    org.springframework.security: INFO
+    com.woltaxi: DEBUG
+    root: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+
+# WOLTAXI Eureka Configuration
+woltaxi:
+  eureka:
+    version: "2.0.0"
+    cluster-mode: false
+    expected-services:
+      - api-gateway
+      - user-service
+      - ride-service
+      - driver-service
+      - payment-service
+      - ai-matching-service
+      - notification-service
+      - location-service
+    monitoring:
+      health-check-interval: 30
+      instance-timeout: 90

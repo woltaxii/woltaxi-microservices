@@ -1,0 +1,290 @@
+# WOLTAXI Analytics Service Configuration
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+server:
+  port: 8089
+  servlet:
+    context-path: /api/v1/analytics
+
+# =============================================================================
+# SPRING APPLICATION CONFIGURATION
+# =============================================================================
+spring:
+  application:
+    name: analytics-service
+  
+  # =============================================================================
+  # DATABASE CONFIGURATION
+  # =============================================================================
+  datasource:
+    url: jdbc:postgresql://postgres:5432/woltaxi
+    username: woltaxi_user
+    password: woltaxi_pass_2024
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 25
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 600000
+      connection-timeout: 30000
+      
+  # =============================================================================
+  # JPA CONFIGURATION
+  # =============================================================================
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 100
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+        format_sql: false
+        
+  # =============================================================================
+  # REDIS CONFIGURATION
+  # =============================================================================
+  data:
+    redis:
+      host: redis
+      port: 6379
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
+          
+  # =============================================================================
+  # CACHE CONFIGURATION
+  # =============================================================================
+  cache:
+    type: redis
+    redis:
+      time-to-live: 1800000 # 30 minutes
+      cache-null-values: false
+      
+  # =============================================================================
+  # KAFKA CONFIGURATION
+  # =============================================================================
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: analytics-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.woltaxi.analytics.model.event"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      
+  # =============================================================================
+  # SECURITY CONFIGURATION
+  # =============================================================================
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/woltaxi
+
+# =============================================================================
+# EUREKA CLIENT CONFIGURATION
+# =============================================================================
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+
+# =============================================================================
+# MANAGEMENT & MONITORING
+# =============================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  health:
+    diskspace:
+      enabled: true
+    redis:
+      enabled: true
+    db:
+      enabled: true
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  level:
+    com.woltaxi.analytics: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# =============================================================================
+# WOLTAXI ANALYTICS CONFIGURATION
+# =============================================================================
+woltaxi:
+  analytics:
+    # Performance Calculation Settings
+    calculations:
+      batch-size: 1000
+      parallel-processing: true
+      max-threads: 10
+      
+    # Reporting Settings
+    reports:
+      auto-generate: true
+      daily-report-time: "23:30" # Generate daily reports at 23:30
+      monthly-report-day: 1 # Generate monthly reports on 1st day of month
+      yearly-report-month: 1 # Generate yearly reports in January
+      
+    # Performance Thresholds
+    thresholds:
+      excellent-rating: 4.8
+      good-rating: 4.5
+      poor-rating: 4.0
+      high-cancellation-rate: 10.0 # Above 10% is high
+      low-completion-rate: 90.0 # Below 90% is low
+      
+    # Financial Analysis
+    financial:
+      default-currency: TRY
+      exchange-rates:
+        update-interval: "0 0 9 * * *" # Daily at 9 AM
+        api-provider: "exchangerate-api"
+      tax-calculation:
+        enabled: true
+        default-tax-rate: 20.0 # 20% income tax
+        social-security-rate: 32.5 # 32.5% social security
+        
+    # Goal Management
+    goals:
+      auto-create-monthly: true
+      auto-create-yearly: true
+      achievement-bonus-percentage: 5.0 # 5% bonus for goal achievement
+      
+    # Data Retention
+    data-retention:
+      daily-performance-days: 1095 # 3 years
+      monthly-summary-years: 10
+      yearly-summary-years: 20
+      expense-records-years: 7 # For tax purposes
+      
+    # Export Settings
+    exports:
+      formats: ["PDF", "EXCEL", "CSV"]
+      max-records-per-export: 50000
+      include-charts: true
+      watermark: "WOLTAXI Analytics - Confidential"
+      
+    # Dashboard Settings
+    dashboard:
+      refresh-interval: 300000 # 5 minutes
+      max-chart-data-points: 365 # 1 year of daily data
+      real-time-updates: true
+      
+    # Notification Settings
+    notifications:
+      performance-alerts: true
+      goal-reminders: true
+      expense-reminders: true
+      monthly-summary: true
+      achievement-congratulations: true
+      
+    # Cache Configuration
+    cache:
+      daily-performance: 
+        ttl: 3600 # 1 hour
+      monthly-summary:
+        ttl: 7200 # 2 hours
+      yearly-summary:
+        ttl: 86400 # 24 hours
+      top-performers:
+        ttl: 1800 # 30 minutes
+      dashboard-data:
+        ttl: 300 # 5 minutes
+        
+    # API Rate Limiting
+    rate-limiting:
+      requests-per-minute: 100
+      requests-per-hour: 2000
+      burst-capacity: 200
+      
+    # Security Settings
+    security:
+      data-encryption: true
+      audit-logs: true
+      access-control:
+        driver-own-data: true
+        manager-all-data: true
+        admin-full-access: true
+        
+    # Integration with External Services
+    integrations:
+      user-service:
+        enabled: true
+        base-url: "http://user-service:8081"
+      driver-service:
+        enabled: true
+        base-url: "http://driver-service:8082"
+      ride-service:
+        enabled: true
+        base-url: "http://ride-service:8083"
+      subscription-service:
+        enabled: true
+        base-url: "http://subscription-service:8087"
+        
+    # Batch Processing
+    batch:
+      daily-aggregation:
+        cron: "0 30 23 * * *" # Every day at 23:30
+        chunk-size: 1000
+      monthly-aggregation:
+        cron: "0 0 2 1 * *" # 1st day of month at 02:00
+        chunk-size: 500
+      yearly-aggregation:
+        cron: "0 0 3 1 1 *" # January 1st at 03:00
+        chunk-size: 100
+        
+    # Performance Optimization
+    performance:
+      database-query-timeout: 30000 # 30 seconds
+      connection-pool-size: 25
+      index-optimization: true
+      query-caching: true
+      
+    # Backup and Recovery
+    backup:
+      enabled: true
+      schedule: "0 0 1 * * *" # Daily at 01:00
+      retention-days: 30
+      compress: true

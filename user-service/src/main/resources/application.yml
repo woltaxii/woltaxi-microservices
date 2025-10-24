@@ -1,0 +1,88 @@
+server:
+  port: 8081
+  undertow:
+    threads:
+      worker: 100
+      io: 8
+
+spring:
+  application:
+    name: user-service
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/woltaxi_users
+    username: ${DB_USERNAME:woltaxi_user}
+    password: ${DB_PASSWORD:woltaxi_2024}
+    driver-class-name: org.postgresql.Driver
+    
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+    
+  redis:
+    host: localhost
+    port: 6379
+    password: ${REDIS_PASSWORD:}
+    database: 1
+    
+  security:
+    jwt:
+      secret: ${JWT_SECRET:woltaxi-user-secret-2024}
+      expiration: 86400
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://woltaxi-admin:woltaxi-2024-secure@localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+    
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    metadata-map:
+      version: "2.0.0"
+      service-type: "user-management"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.woltaxi.user: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
+    root: INFO
+
+# WOLTAXI User Service Configuration
+woltaxi:
+  user:
+    registration:
+      sms-verification: true
+      email-verification: false
+      auto-approve: false
+      
+    security:
+      password-policy:
+        min-length: 8
+        require-uppercase: true
+        require-numbers: true
+        require-special-chars: false
+        
+    profiles:
+      photo-upload: true
+      max-photo-size: "5MB"
+      allowed-formats: ["jpg", "png", "webp"]
+      
+    notifications:
+      welcome-message: true
+      profile-updates: true
+      security-alerts: true

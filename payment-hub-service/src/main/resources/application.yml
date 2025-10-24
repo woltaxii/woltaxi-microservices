@@ -1,0 +1,435 @@
+# ===============================================================
+# WOLTAXI ADVANCED PAYMENT HUB SERVICE CONFIGURATION
+# ===============================================================
+# Multi-Platform Payment Processing Hub
+# Global Payment Integration with Enhanced Security
+# ===============================================================
+
+spring:
+  application:
+    name: payment-hub-service
+  profiles:
+    active: development
+  
+  # ===============================================================
+  # DATABASE CONFIGURATION - PostgreSQL 15
+  # ===============================================================
+  datasource:
+    url: jdbc:postgresql://localhost:5432/woltaxi_payment_hub
+    username: ${DB_USERNAME:woltaxi_user}
+    password: ${DB_PASSWORD:woltaxi_secure_2024}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: PaymentHubHikariPool
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+      leak-detection-threshold: 60000
+  
+  # ===============================================================
+  # JPA & HIBERNATE CONFIGURATION
+  # ===============================================================
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        use_sql_comments: false
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        jdbc.batch_versioned_data: true
+    open-in-view: false
+  
+  # ===============================================================
+  # REDIS CONFIGURATION - Cache & Session
+  # ===============================================================
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 2000ms
+  
+  # ===============================================================
+  # KAFKA CONFIGURATION - Payment Events
+  # ===============================================================
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+      retries: 3
+      acks: all
+    consumer:
+      group-id: payment-hub-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer  
+      properties:
+        spring.json.trusted.packages: com.woltaxi.payment.event
+        spring.json.use.type.headers: false
+      auto-offset-reset: earliest
+  
+  # ===============================================================
+  # SECURITY CONFIGURATION
+  # ===============================================================
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8080/auth/realms/woltaxi/protocol/openid_connect/certs}
+
+# ===============================================================
+# SERVER CONFIGURATION - Enhanced Security
+# ===============================================================
+server:
+  port: 8086
+  servlet:
+    context-path: /api/v1/payment-hub
+  compression:
+    enabled: true
+  http2:
+    enabled: true
+  ssl:
+    enabled: ${SSL_ENABLED:false}
+    key-store: ${SSL_KEY_STORE:}
+    key-store-password: ${SSL_KEY_STORE_PASSWORD:}
+    key-store-type: PKCS12
+
+# ===============================================================
+# EUREKA SERVICE DISCOVERY
+# ===============================================================
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+    healthcheck:
+      enabled: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+    hostname: ${HOSTNAME:localhost}
+    instance-id: ${spring.application.name}:${spring.profiles.active}:${server.port}
+    metadata-map:
+      version: 1.0.0
+      description: "Advanced Multi-Platform Payment Processing Hub"
+
+# ===============================================================
+# RESILIENCE4J CIRCUIT BREAKER
+# ===============================================================
+resilience4j:
+  circuitbreaker:
+    instances:
+      payment-provider:
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+      currency-exchange:
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 45s
+        sliding-window-size: 8
+        minimum-number-of-calls: 4
+  retry:
+    instances:
+      payment-processing:
+        max-attempts: 3
+        wait-duration: 2s
+        exponential-backoff-multiplier: 2
+      fraud-check:
+        max-attempts: 2
+        wait-duration: 1s
+
+# ===============================================================
+# MANAGEMENT & MONITORING
+# ===============================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: 0.1
+
+# ===============================================================
+# LOGGING CONFIGURATION
+# ===============================================================
+logging:
+  level:
+    com.woltaxi.payment: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate.SQL: ERROR
+    org.hibernate.type: ERROR
+    com.stripe: INFO
+    com.paypal: INFO
+    com.iyzipay: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/payment-hub-service.log
+    max-size: 100MB
+    max-history: 30
+
+# ===============================================================
+# PAYMENT PROVIDERS CONFIGURATION
+# ===============================================================
+payment:
+  providers:
+    # STRIPE CONFIGURATION
+    stripe:
+      enabled: true
+      public-key: ${STRIPE_PUBLIC_KEY:pk_test_}
+      secret-key: ${STRIPE_SECRET_KEY:sk_test_}
+      webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+      api-version: "2023-10-16"
+      connect-timeout: 30s
+      read-timeout: 80s
+    
+    # PAYPAL CONFIGURATION
+    paypal:
+      enabled: true
+      client-id: ${PAYPAL_CLIENT_ID:}
+      client-secret: ${PAYPAL_CLIENT_SECRET:}
+      environment: ${PAYPAL_ENVIRONMENT:sandbox}
+      webhook-id: ${PAYPAL_WEBHOOK_ID:}
+    
+    # SQUARE CONFIGURATION
+    square:
+      enabled: true
+      application-id: ${SQUARE_APPLICATION_ID:}
+      access-token: ${SQUARE_ACCESS_TOKEN:}
+      location-id: ${SQUARE_LOCATION_ID:}
+      environment: ${SQUARE_ENVIRONMENT:sandbox}
+    
+    # ADYEN CONFIGURATION
+    adyen:
+      enabled: true
+      api-key: ${ADYEN_API_KEY:}
+      merchant-account: ${ADYEN_MERCHANT_ACCOUNT:}
+      environment: ${ADYEN_ENVIRONMENT:TEST}
+      hmac-key: ${ADYEN_HMAC_KEY:}
+    
+    # BRAINTREE CONFIGURATION
+    braintree:
+      enabled: true
+      environment: ${BRAINTREE_ENVIRONMENT:sandbox}
+      merchant-id: ${BRAINTREE_MERCHANT_ID:}
+      public-key: ${BRAINTREE_PUBLIC_KEY:}
+      private-key: ${BRAINTREE_PRIVATE_KEY:}
+    
+    # IYZICO CONFIGURATION (Turkish Market)
+    iyzico:
+      enabled: true
+      api-key: ${IYZICO_API_KEY:}
+      secret-key: ${IYZICO_SECRET_KEY:}
+      base-url: ${IYZICO_BASE_URL:https://sandbox-api.iyzipay.com}
+    
+    # PAYTR CONFIGURATION (Turkish Market)
+    paytr:
+      enabled: true
+      merchant-id: ${PAYTR_MERCHANT_ID:}
+      merchant-key: ${PAYTR_MERCHANT_KEY:}
+      merchant-salt: ${PAYTR_MERCHANT_SALT:}
+      base-url: ${PAYTR_BASE_URL:https://www.paytr.com}
+
+# ===============================================================
+# CURRENCY & EXCHANGE CONFIGURATION
+# ===============================================================
+currency:
+  exchange:
+    enabled: true
+    base-currency: USD
+    supported-currencies:
+      - USD
+      - EUR
+      - GBP
+      - TRY
+      - JPY
+      - AUD
+      - CAD
+      - CHF
+      - SEK
+      - NOK
+      - DKK
+    providers:
+      ecb:
+        enabled: true
+        url: "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
+      fixer:
+        enabled: false
+        api-key: ${FIXER_API_KEY:}
+        url: "http://data.fixer.io/api/latest"
+    cache:
+      ttl: PT1H
+      refresh-interval: PT30M
+
+# ===============================================================
+# WALLET & BALANCE CONFIGURATION
+# ===============================================================
+wallet:
+  multi-currency:
+    enabled: true
+    default-currency: USD
+    auto-conversion: true
+    conversion-fee-rate: 0.015
+  balance:
+    minimum-balance: 0.01
+    maximum-balance: 50000.00
+    daily-transaction-limit: 10000.00
+    monthly-transaction-limit: 100000.00
+
+# ===============================================================
+# FRAUD DETECTION CONFIGURATION
+# ===============================================================
+fraud:
+  detection:
+    enabled: true
+    max-failed-attempts: 3
+    lock-duration: PT30M
+    risk-score-threshold: 75
+    geo-blocking:
+      enabled: true
+      blocked-countries: []
+    velocity-checks:
+      enabled: true
+      max-transactions-per-minute: 5
+      max-transactions-per-hour: 50
+      max-amount-per-day: 5000.00
+
+# ===============================================================
+# SUBSCRIPTION INTEGRATION
+# ===============================================================
+subscription:
+  service:
+    base-url: ${SUBSCRIPTION_SERVICE_URL:http://localhost:8085}
+    timeout: 30s
+    retry-attempts: 3
+  webhook:
+    enabled: true
+    secret: ${SUBSCRIPTION_WEBHOOK_SECRET:woltaxi_subscription_webhook_2024}
+
+# ===============================================================
+# NOTIFICATION CONFIGURATION
+# ===============================================================
+notification:
+  enabled: true
+  channels:
+    email:
+      enabled: true
+      service-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8087}
+    sms:
+      enabled: true
+      provider: twilio
+    push:
+      enabled: true
+      provider: firebase
+
+# ===============================================================
+# MOBILE PAYMENT INTEGRATION
+# ===============================================================
+mobile:
+  payments:
+    apple-pay:
+      enabled: true
+      merchant-id: ${APPLE_PAY_MERCHANT_ID:}
+      certificate-path: ${APPLE_PAY_CERT_PATH:}
+      certificate-password: ${APPLE_PAY_CERT_PASSWORD:}
+    google-pay:
+      enabled: true
+      merchant-id: ${GOOGLE_PAY_MERCHANT_ID:}
+      environment: ${GOOGLE_PAY_ENVIRONMENT:TEST}
+    samsung-pay:
+      enabled: true
+      service-id: ${SAMSUNG_PAY_SERVICE_ID:}
+      certificate-path: ${SAMSUNG_PAY_CERT_PATH:}
+
+# ===============================================================
+# SECURITY & ENCRYPTION
+# ===============================================================
+security:
+  encryption:
+    algorithm: AES-256-GCM
+    key-size: 256
+    iv-size: 16
+  jwt:
+    secret: ${JWT_SECRET:woltaxi_payment_hub_super_secret_key_2024_secure}
+    expiration: 86400000
+    refresh-expiration: 604800000
+  pci-dss:
+    enabled: true
+    log-sensitive-data: false
+    mask-card-numbers: true
+    tokenization:
+      enabled: true
+      provider: vault
+
+# ===============================================================
+# API DOCUMENTATION
+# ===============================================================
+springdoc:
+  api-docs:
+    path: /api/v1/payment-hub/api-docs
+  swagger-ui:
+    path: /api/v1/payment-hub/swagger-ui.html
+    operationsSorter: method
+    disable-swagger-default-url: true
+  info:
+    title: WOLTAXI Payment Hub API
+    description: Advanced Multi-Platform Payment Processing Hub
+    version: 1.0.0
+    contact:
+      name: WOLTAXI Development Team
+      email: dev@woltaxi.com
+
+# ===============================================================
+# FEATURE FLAGS
+# ===============================================================
+features:
+  multi-currency-wallet: true
+  apple-pay-integration: true
+  google-pay-integration: true
+  samsung-pay-integration: true
+  fraud-detection: true
+  real-time-notifications: true
+  subscription-billing: true
+  automatic-refunds: true
+  payment-analytics: true
+  risk-assessment: true

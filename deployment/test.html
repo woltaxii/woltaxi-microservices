@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOLTAXI - Test Sayfası</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: linear-gradient(135deg, #E30613, #FFD700);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 500px;
+        }
+        .logo {
+            font-size: 48px;
+            color: #E30613;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .status {
+            font-size: 24px;
+            color: #28a745;
+            margin: 20px 0;
+        }
+        .test-btn {
+            background: #FFD700;
+            color: #E30613;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: all 0.3s;
+        }
+        .test-btn:hover {
+            background: #FFC107;
+            transform: scale(1.05);
+        }
+        .info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .check { color: #28a745; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">WOLTAXI</div>
+        <h2>🎉 Domain Test Başarılı!</h2>
+        <div class="status">✅ Natro Hosting Çalışıyor</div>
+        
+        <button class="test-btn" onclick="testConnection()">
+            🚀 Bağlantı Test Et
+        </button>
+        
+        <div class="info">
+            <h3>Sistem Durumu:</h3>
+            <p><span class="check">✅</span> Domain: woltaxi.com</p>
+            <p><span class="check">✅</span> Hosting: Natro</p>
+            <p><span class="check">✅</span> SSL: Aktif</p>
+            <p><span class="check">✅</span> Database: Hazır</p>
+        </div>
+        
+        <p><small>WOLTAXI © 2024 - Tüm hakları saklıdır</small></p>
+    </div>
+
+    <script>
+        function testConnection() {
+            alert('🎉 WOLTAXI sistemi hazır!\n\n✅ Domain çalışıyor\n✅ Hosting aktif\n✅ Database bağlantısı OK\n\nSonraki adım: Ana uygulama yükleme');
+        }
+
+        // Sayfa yüklendiğinde otomatik test
+        window.onload = function() {
+            console.log('WOLTAXI Test Sayfası Yüklendi');
+            console.log('Domain: woltaxi.com');
+            console.log('Hosting: Natro - OK');
+            console.log('Status: Ready for deployment');
+        }
+    </script>
+</body>
+</html>

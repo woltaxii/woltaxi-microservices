@@ -1,0 +1,392 @@
+# =============================================================================
+# WOLTAXI Emergency and Safety Service Configuration
+# Acil Durum ve Güvenlik Yönetim Sistemi Yapılandırması
+# =============================================================================
+
+# Server Configuration
+server:
+  port: 8091
+  servlet:
+    context-path: /
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# Spring Configuration
+spring:
+  application:
+    name: emergency-service
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/woltaxi_db
+    username: woltaxi_user
+    password: woltaxi_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 25
+          order_inserts: true
+          order_updates: true
+
+  # Redis Configuration (Critical for Emergency System)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      timeout: 1000ms
+      jedis:
+        pool:
+          max-active: 50
+          max-idle: 20
+          min-idle: 5
+          max-wait: 500ms
+
+  # Kafka Configuration (Real-time Emergency Events)
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 5
+      batch-size: 16384
+      linger-ms: 1
+      buffer-memory: 33554432
+      compression-type: gzip
+    consumer:
+      group-id: emergency-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "com.woltaxi.*"
+
+  # WebSocket Configuration (Real-time Updates)
+  websocket:
+    allowed-origins: "*"
+    heartbeat-time: 10000
+    registry-timeout: 30000
+
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/auth/realms/woltaxi
+          jwk-set-uri: http://localhost:8080/auth/realms/woltaxi/protocol/openid_connect/certs
+
+  # Cache Configuration (High Priority)
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000 # 5 minutes for emergency data
+      cache-null-values: false
+
+  # Mail Configuration (Emergency Notifications)
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:emergency@woltaxi.com}
+    password: ${MAIL_PASSWORD:your-mail-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+# Eureka Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+    healthcheck:
+      enabled: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 15 # Faster for emergency service
+    lease-expiration-duration-in-seconds: 45
+    metadata-map:
+      version: 1.0.0
+      environment: ${spring.profiles.active:local}
+      priority: HIGH
+
+# Feign Configuration
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 3000 # Faster for emergency
+        read-timeout: 10000
+        logger-level: basic
+  circuitbreaker:
+    enabled: true
+
+# Management & Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,beans,mappings
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.75, 0.95, 0.99
+  info:
+    env:
+      enabled: true
+    git:
+      mode: full
+
+# Logging Configuration (Critical for Emergency System)
+logging:
+  level:
+    com.woltaxi.emergency: INFO
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+    org.springframework.kafka: INFO
+    org.springframework.websocket: INFO
+    org.springframework.data.redis: WARN
+    com.twilio: WARN
+    com.google.firebase: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [🚨 EMERGENCY] [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [EMERGENCY] [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/emergency-service.log
+    max-size: 100MB
+    max-history: 90 # Keep longer for emergency logs
+
+# =============================================================================
+# EMERGENCY SYSTEM CONFIGURATION - Acil Durum Sistem Yapılandırması
+# =============================================================================
+
+woltaxi:
+  emergency:
+    # Critical Response Times (in seconds)
+    response-times:
+      critical-incident-acknowledge: 30      # Critical incidents must be acknowledged in 30 seconds
+      high-priority-acknowledge: 60          # High priority in 60 seconds
+      standard-acknowledge: 300              # Standard in 5 minutes
+      auto-escalation-time: 600              # Auto-escalate after 10 minutes
+      
+    # Location Tracking Configuration
+    location-tracking:
+      update-interval-seconds: 15            # Update every 15 seconds during emergency
+      accuracy-threshold-meters: 10          # Minimum accuracy required
+      battery-optimization: false            # Disable battery optimization during emergency
+      background-updates: true               # Allow background location updates
+      sharing-duration-minutes: 60           # Default sharing duration
+      max-sharing-duration-hours: 24         # Maximum sharing duration
+      
+    # Communication Settings
+    communication:
+      sms-provider: "TWILIO"                 # SMS provider
+      max-retry-attempts: 3                  # Max retry for failed notifications
+      retry-delay-seconds: 30                # Delay between retries
+      emergency-keywords: ["HELP", "SOS", "EMERGENCY", "ACIL", "YARDIM"]
+      supported-languages: ["en", "tr", "es", "fr", "de", "ar", "zh", "hi", "pt", "ru"]
+      
+    # Safety Modes Configuration
+    safety-modes:
+      women-safety:
+        enabled: true
+        auto-share-location: true
+        emergency-contacts-notify: true
+        police-integration: true
+        record-audio: true
+        
+      family-safety:
+        enabled: true
+        child-protection: true
+        family-tracking: true
+        safe-route-preference: true
+        
+      tourist-safety:
+        enabled: true
+        embassy-contact: true
+        local-guide-assistance: true
+        translation-support: true
+        cultural-guidance: true
+        
+    # Auto-Response Configuration
+    auto-response:
+      panic-button-delay: 60                 # Seconds before auto-calling authorities
+      medical-emergency-delay: 30            # Faster for medical emergencies
+      accident-response-delay: 45            # Quick response for accidents
+      harassment-response-delay: 15          # Immediate for harassment
+      
+    # Recording & Evidence
+    recording:
+      auto-record-audio: true                # Auto-record during emergency
+      auto-record-video: false               # Configurable video recording
+      max-recording-duration-minutes: 30     # Maximum recording duration
+      audio-quality: "HIGH"                  # HIGH, MEDIUM, LOW
+      video-quality: "MEDIUM"                # Balance between quality and storage
+      cloud-backup: true                     # Backup recordings to cloud
+      
+    # Third-Party Integrations
+    integrations:
+      twilio:
+        account-sid: ${TWILIO_ACCOUNT_SID:your-twilio-account-sid}
+        auth-token: ${TWILIO_AUTH_TOKEN:your-twilio-auth-token}
+        emergency-number: ${EMERGENCY_PHONE_NUMBER:+1234567890}
+        
+      firebase:
+        project-id: ${FIREBASE_PROJECT_ID:woltaxi-emergency}
+        service-account-key: ${FIREBASE_SERVICE_ACCOUNT_KEY:/path/to/firebase-key.json}
+        
+      google-maps:
+        api-key: ${GOOGLE_MAPS_API_KEY:your-google-maps-api-key}
+        geocoding-enabled: true
+        reverse-geocoding-enabled: true
+        
+    # Emergency Services by Country
+    emergency-services:
+      default:
+        police: "112"
+        ambulance: "112"
+        fire: "112"
+        
+      country-specific:
+        US:
+          police: "911"
+          ambulance: "911"
+          fire: "911"
+          
+        TR:
+          police: "155"
+          ambulance: "112"
+          fire: "110"
+          
+        UK:
+          police: "999"
+          ambulance: "999"
+          fire: "999"
+          
+        DE:
+          police: "110"
+          ambulance: "112"
+          fire: "112"
+          
+        FR:
+          police: "17"
+          ambulance: "15"
+          fire: "18"
+          
+    # Monitoring & Alerts
+    monitoring:
+      health-check-interval: 30              # Seconds between health checks
+      critical-alert-threshold: 10           # Critical incidents threshold
+      performance-degradation-threshold: 5   # Performance alert threshold
+      system-overload-threshold: 100         # Max concurrent incidents
+      
+    # Data Retention Policy
+    data-retention:
+      active-incidents-days: 365             # Keep active incidents for 1 year
+      resolved-incidents-days: 1095          # Keep resolved for 3 years
+      location-tracking-days: 90             # Location data for 3 months
+      communication-logs-days: 180           # Communication logs for 6 months
+      recordings-days: 365                   # Audio/video for 1 year
+      
+    # Performance Settings
+    performance:
+      max-concurrent-incidents: 1000         # Maximum concurrent emergency incidents
+      batch-processing-size: 100             # Batch size for bulk operations
+      database-pool-size: 20                 # Database connection pool
+      redis-pool-size: 50                    # Redis connection pool
+      kafka-consumer-threads: 10             # Kafka consumer threads
+      
+    # Escalation Rules
+    escalation:
+      level-1-minutes: 5                     # First escalation after 5 minutes
+      level-2-minutes: 15                    # Second escalation after 15 minutes
+      level-3-minutes: 30                    # Final escalation after 30 minutes
+      executive-escalation-minutes: 60       # Executive notification after 1 hour
+      
+      escalation-contacts:
+        level-1: ["emergency-team@woltaxi.com"]
+        level-2: ["emergency-team@woltaxi.com", "ops-manager@woltaxi.com"]
+        level-3: ["emergency-team@woltaxi.com", "ops-manager@woltaxi.com", "cto@woltaxi.com"]
+        executive: ["ceo@woltaxi.com", "cto@woltaxi.com"]
+
+# Resilience4j Circuit Breaker Configuration (Critical)
+resilience4j:
+  circuitbreaker:
+    instances:
+      emergency-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 3s      # Faster recovery for emergency
+        failure-rate-threshold: 30           # Lower threshold for emergency
+        event-consumer-buffer-size: 10
+        
+  retry:
+    instances:
+      emergency-service:
+        max-attempts: 5                      # More retries for emergency
+        wait-duration: 500ms                 # Faster retries
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 1.5
+
+  timelimiter:
+    instances:
+      emergency-service:
+        timeout-duration: 10s                # Shorter timeout for emergency
+
+# External Service URLs
+external-services:
+  notification-service: "http://notification-service"
+  user-service: "http://user-service"
+  driver-service: "http://driver-service"
+  location-service: "http://location-service"
+  
+# Feature Flags
+feature-flags:
+  auto-police-call: true
+  auto-ambulance-call: true
+  location-sharing: true
+  audio-recording: true
+  video-recording: false
+  ai-threat-detection: false               # Future feature
+  predictive-alerts: false                 # Future feature

@@ -1,0 +1,320 @@
+# =============================================================================
+# WOLTAXI Global Performance Service Configuration
+# Küresel Performans Analitik ve Ödüllendirme Sistemi Yapılandırması
+# =============================================================================
+
+# Server Configuration
+server:
+  port: 8090
+  servlet:
+    context-path: /
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# Spring Configuration
+spring:
+  application:
+    name: global-performance-service
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/woltaxi_db
+    username: woltaxi_user
+    password: woltaxi_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 25
+          order_inserts: true
+          order_updates: true
+        cache:
+          use_second_level_cache: true
+          use_query_cache: true
+          region:
+            factory_class: org.hibernate.cache.ehcache.EhCacheRegionFactory
+
+  # Redis Configuration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      timeout: 2000ms
+      jedis:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 2
+          max-wait: 1000ms
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      batch-size: 16384
+      linger-ms: 5
+      buffer-memory: 33554432
+    consumer:
+      group-id: global-performance-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "com.woltaxi.*"
+
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/auth/realms/woltaxi
+          jwk-set-uri: http://localhost:8080/auth/realms/woltaxi/protocol/openid_connect/certs
+
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000 # 1 hour
+      cache-null-values: false
+
+# Eureka Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+    healthcheck:
+      enabled: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+    metadata-map:
+      version: 1.0.0
+      environment: ${spring.profiles.active:local}
+
+# Feign Configuration
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 30000
+        logger-level: basic
+  circuitbreaker:
+    enabled: true
+
+# Management & Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,beans,mappings
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.75, 0.95, 0.99
+  info:
+    env:
+      enabled: true
+    git:
+      mode: full
+
+# Logging Configuration
+logging:
+  level:
+    com.woltaxi.globalperformance: INFO
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.kafka: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.data.redis: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/global-performance-service.log
+    max-size: 100MB
+    max-history: 30
+
+# =============================================================================
+# CUSTOM APPLICATION PROPERTIES - Özel Uygulama Yapılandırması
+# =============================================================================
+
+# Global Performance Analytics Configuration
+woltaxi:
+  performance:
+    # Calculation Algorithms
+    algorithms:
+      default-performance-algorithm: "WOLTAXI Standard Performance Algorithm v2.0"
+      scoring-weights:
+        customer-rating: 0.20
+        trip-completion: 0.15
+        earnings-efficiency: 0.15
+        punctuality: 0.10
+        fuel-efficiency: 0.10
+        customer-service: 0.10
+        safety-record: 0.10
+        innovation-adoption: 0.05
+        attendance: 0.05
+      bonus-multipliers:
+        consecutive-months: 1.0
+        new-driver: 1.1
+        veteran-driver: 1.05
+        peak-hours: 1.2
+      penalties:
+        cancellation: 0.95
+        low-rating: 0.90
+        late-arrival: 0.98
+
+    # Ranking & Rewards Configuration
+    rankings:
+      global-top-performers-count: 100
+      country-top-performers-count: 10
+      city-top-performers-count: 5
+      achievement-tiers:
+        diamond-threshold: 95.0    # Top 1%
+        platinum-threshold: 90.0   # Top 5%
+        gold-threshold: 80.0       # Top 15%
+        silver-threshold: 70.0     # Top 30%
+        bronze-threshold: 60.0     # Top 50%
+
+    # Performance Calculation Scheduling
+    scheduling:
+      daily-calculation-cron: "0 30 2 * * *"     # Daily at 2:30 AM
+      monthly-ranking-cron: "0 0 3 1 * *"        # Monthly on 1st at 3:00 AM
+      quarterly-rewards-cron: "0 0 4 1 1,4,7,10 *" # Quarterly at 4:00 AM
+      annual-analysis-cron: "0 0 5 1 1 *"        # Annually on Jan 1 at 5:00 AM
+
+    # Data Retention Policy
+    retention:
+      daily-metrics-days: 90
+      monthly-metrics-months: 24
+      annual-metrics-years: 10
+      ranking-history-months: 12
+
+    # Cache Configuration
+    cache:
+      country-performance-ttl: 3600    # 1 hour
+      driver-rankings-ttl: 1800        # 30 minutes
+      global-insights-ttl: 7200        # 2 hours
+      benchmarks-ttl: 86400            # 24 hours
+
+    # Analytics & Reporting
+    analytics:
+      batch-processing-size: 1000
+      parallel-processing-threads: 5
+      report-generation-timeout: 300   # 5 minutes
+      export-formats: ["JSON", "CSV", "EXCEL", "PDF"]
+
+    # Notification Configuration
+    notifications:
+      rewards-announcement: true
+      performance-alerts: true
+      ranking-updates: true
+      monthly-reports: true
+
+  # External Service Integration
+  external-services:
+    analytics-engine:
+      enabled: true
+      api-key: "${ANALYTICS_ENGINE_API_KEY:dummy-key}"
+      timeout: 30000
+    
+    notification-service:
+      enabled: true
+      base-url: "http://notification-service"
+      timeout: 10000
+    
+    user-service:
+      base-url: "http://user-service"
+      timeout: 5000
+    
+    driver-service:
+      base-url: "http://driver-service"
+      timeout: 5000
+
+  # AI & Machine Learning Configuration
+  ai:
+    performance-prediction:
+      enabled: true
+      model-version: "v1.0"
+      confidence-threshold: 0.85
+    
+    optimization-algorithms:
+      capacity-optimization: true
+      route-optimization: true
+      pricing-optimization: true
+    
+    insights-generation:
+      enabled: true
+      minimum-data-points: 100
+      analysis-depth: "COMPREHENSIVE"
+
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      global-performance-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+        record-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+
+  retry:
+    instances:
+      global-performance-service:
+        max-attempts: 3
+        wait-duration: 1000ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+
+  timelimiter:
+    instances:
+      global-performance-service:
+        timeout-duration: 30s

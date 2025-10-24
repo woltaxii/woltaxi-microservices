@@ -1,0 +1,524 @@
+# ===============================================================
+# WOLTAXI TRAVEL INTEGRATION SERVICE CONFIGURATION
+# ===============================================================
+# Comprehensive Tourism & Travel Integration Platform
+# Airline, Bus, Hotel & Car Rental Booking System
+# ===============================================================
+
+spring:
+  application:
+    name: travel-integration-service
+  profiles:
+    active: development
+  
+  # ===============================================================
+  # DATABASE CONFIGURATION - PostgreSQL 15
+  # ===============================================================
+  datasource:
+    url: jdbc:postgresql://localhost:5432/woltaxi_travel_integration
+    username: ${DB_USERNAME:woltaxi_user}
+    password: ${DB_PASSWORD:woltaxi_secure_2024}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: TravelIntegrationHikariPool
+      minimum-idle: 5
+      maximum-pool-size: 25
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+      leak-detection-threshold: 60000
+  
+  # ===============================================================
+  # JPA & HIBERNATE CONFIGURATION
+  # ===============================================================
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        use_sql_comments: false
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        jdbc.batch_versioned_data: true
+    open-in-view: false
+  
+  # ===============================================================
+  # REDIS CONFIGURATION - Cache & Session
+  # ===============================================================
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 2000ms
+  
+  # ===============================================================
+  # KAFKA CONFIGURATION - Travel Events
+  # ===============================================================
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+      retries: 3
+      acks: all
+    consumer:
+      group-id: travel-integration-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer  
+      properties:
+        spring.json.trusted.packages: com.woltaxi.travel.event
+        spring.json.use.type.headers: false
+      auto-offset-reset: earliest
+  
+  # ===============================================================
+  # SECURITY CONFIGURATION
+  # ===============================================================
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8080/auth/realms/woltaxi/protocol/openid_connect/certs}
+
+# ===============================================================
+# SERVER CONFIGURATION - Enhanced Security
+# ===============================================================
+server:
+  port: 8088
+  servlet:
+    context-path: /api/v1/travel
+  compression:
+    enabled: true
+  http2:
+    enabled: true
+  ssl:
+    enabled: ${SSL_ENABLED:false}
+    key-store: ${SSL_KEY_STORE:}
+    key-store-password: ${SSL_KEY_STORE_PASSWORD:}
+    key-store-type: PKCS12
+
+# ===============================================================
+# EUREKA SERVICE DISCOVERY
+# ===============================================================
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+    healthcheck:
+      enabled: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+    hostname: ${HOSTNAME:localhost}
+    instance-id: ${spring.application.name}:${spring.profiles.active}:${server.port}
+    metadata-map:
+      version: 1.0.0
+      description: "Comprehensive Tourism & Travel Integration Platform"
+
+# ===============================================================
+# RESILIENCE4J CIRCUIT BREAKER
+# ===============================================================
+resilience4j:
+  circuitbreaker:
+    instances:
+      airline-api:
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 45s
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+      bus-company-api:
+        failure-rate-threshold: 70
+        wait-duration-in-open-state: 30s
+        sliding-window-size: 8
+        minimum-number-of-calls: 4
+      hotel-booking-api:
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 60s
+        sliding-window-size: 12
+        minimum-number-of-calls: 6
+  retry:
+    instances:
+      travel-booking:
+        max-attempts: 3
+        wait-duration: 3s
+        exponential-backoff-multiplier: 2
+      payment-processing:
+        max-attempts: 2
+        wait-duration: 2s
+
+# ===============================================================
+# MANAGEMENT & MONITORING
+# ===============================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: 0.1
+
+# ===============================================================
+# LOGGING CONFIGURATION
+# ===============================================================
+logging:
+  level:
+    com.woltaxi.travel: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate.SQL: ERROR
+    org.hibernate.type: ERROR
+    com.amadeus: INFO
+    com.skyscanner: INFO
+    com.travelport: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/travel-integration-service.log
+    max-size: 100MB
+    max-history: 30
+
+# ===============================================================
+# AIRLINE API CONFIGURATIONS
+# ===============================================================
+airline:
+  providers:
+    # AMADEUS API CONFIGURATION
+    amadeus:
+      enabled: true
+      api-key: ${AMADEUS_API_KEY:}
+      api-secret: ${AMADEUS_API_SECRET:}
+      base-url: ${AMADEUS_BASE_URL:https://test.api.amadeus.com}
+      timeout: 30s
+      retry-attempts: 3
+    
+    # TURKISH AIRLINES API
+    turkish-airlines:
+      enabled: true
+      api-key: ${TURKISH_AIRLINES_API_KEY:}
+      client-id: ${TURKISH_AIRLINES_CLIENT_ID:}
+      base-url: ${TURKISH_AIRLINES_BASE_URL:https://api.turkishairlines.com}
+      timeout: 25s
+    
+    # PEGASUS AIRLINES API
+    pegasus:
+      enabled: true
+      api-key: ${PEGASUS_API_KEY:}
+      agent-code: ${PEGASUS_AGENT_CODE:}
+      base-url: ${PEGASUS_BASE_URL:https://api.flypgs.com}
+      timeout: 30s
+    
+    # SKYSCANNER API
+    skyscanner:
+      enabled: true
+      api-key: ${SKYSCANNER_API_KEY:}
+      base-url: ${SKYSCANNER_BASE_URL:https://partners.api.skyscanner.net}
+      timeout: 35s
+    
+    # TRAVELPORT UNIVERSAL API
+    travelport:
+      enabled: true
+      username: ${TRAVELPORT_USERNAME:}
+      password: ${TRAVELPORT_PASSWORD:}
+      target-branch: ${TRAVELPORT_TARGET_BRANCH:}
+      base-url: ${TRAVELPORT_BASE_URL:https://americas.universal-api.travelport.com}
+      timeout: 40s
+
+# ===============================================================
+# BUS COMPANY API CONFIGURATIONS
+# ===============================================================
+bus:
+  providers:
+    # METRO TURİZM API
+    metro-turizm:
+      enabled: true
+      api-key: ${METRO_TURIZM_API_KEY:}
+      username: ${METRO_TURIZM_USERNAME:}
+      password: ${METRO_TURIZM_PASSWORD:}
+      base-url: ${METRO_TURIZM_BASE_URL:https://api.metroturizm.com.tr}
+      timeout: 20s
+    
+    # KAMİL KOÇ API
+    kamil-koc:
+      enabled: true
+      api-key: ${KAMIL_KOC_API_KEY:}
+      agent-code: ${KAMIL_KOC_AGENT_CODE:}
+      base-url: ${KAMIL_KOC_BASE_URL:https://api.kamilkoc.com.tr}
+      timeout: 20s
+    
+    # PAMUKKALE TURİZM API
+    pamukkale:
+      enabled: true
+      api-key: ${PAMUKKALE_API_KEY:}
+      username: ${PAMUKKALE_USERNAME:}
+      password: ${PAMUKKALE_PASSWORD:}
+      base-url: ${PAMUKKALE_BASE_URL:https://api.pamukkale.com.tr}
+      timeout: 25s
+    
+    # VARAN TURİZM API
+    varan:
+      enabled: true
+      api-key: ${VARAN_API_KEY:}
+      dealer-code: ${VARAN_DEALER_CODE:}
+      base-url: ${VARAN_BASE_URL:https://api.varan.com.tr}
+      timeout: 20s
+
+# ===============================================================
+# HOTEL BOOKING API CONFIGURATIONS
+# ===============================================================
+hotel:
+  providers:
+    # BOOKING.COM API
+    booking:
+      enabled: true
+      api-key: ${BOOKING_API_KEY:}
+      affiliate-id: ${BOOKING_AFFILIATE_ID:}
+      base-url: ${BOOKING_BASE_URL:https://distribution-xml.booking.com}
+      timeout: 30s
+    
+    # EXPEDIA API
+    expedia:
+      enabled: true
+      api-key: ${EXPEDIA_API_KEY:}
+      shared-secret: ${EXPEDIA_SHARED_SECRET:}
+      base-url: ${EXPEDIA_BASE_URL:https://api.expediaquickconnect.com}
+      timeout: 35s
+    
+    # HOTELS.COM API
+    hotels:
+      enabled: true
+      api-key: ${HOTELS_API_KEY:}
+      customer-id: ${HOTELS_CUSTOMER_ID:}
+      base-url: ${HOTELS_BASE_URL:https://api.hotels.com}
+      timeout: 30s
+
+# ===============================================================
+# CAR RENTAL API CONFIGURATIONS
+# ===============================================================
+car-rental:
+  providers:
+    # AVIS API
+    avis:
+      enabled: true
+      api-key: ${AVIS_API_KEY:}
+      location-code: ${AVIS_LOCATION_CODE:}
+      base-url: ${AVIS_BASE_URL:https://stage.avisapi.com}
+      timeout: 25s
+    
+    # HERTZ API
+    hertz:
+      enabled: true
+      api-key: ${HERTZ_API_KEY:}
+      username: ${HERTZ_USERNAME:}
+      password: ${HERTZ_PASSWORD:}
+      base-url: ${HERTZ_BASE_URL:https://api.hertz.com}
+      timeout: 25s
+
+# ===============================================================
+# COMMISSION & PAYMENT CONFIGURATION
+# ===============================================================
+commission:
+  rates:
+    airline:
+      domestic: 0.025      # 2.5% commission on domestic flights
+      international: 0.035 # 3.5% commission on international flights
+    bus:
+      standard: 0.08       # 8% commission on bus tickets
+      premium: 0.10        # 10% commission on premium bus services
+    hotel:
+      economy: 0.12        # 12% commission on economy hotels
+      luxury: 0.15         # 15% commission on luxury hotels
+    car-rental:
+      standard: 0.10       # 10% commission on car rentals
+      premium: 0.12        # 12% commission on premium car rentals
+  
+  payment:
+    monthly-billing: true
+    billing-day: 1         # First day of each month
+    payment-terms: 30      # Net 30 days payment terms
+    minimum-commission: 10.00  # Minimum monthly commission (TRY)
+    currency: TRY
+
+# ===============================================================
+# BOOKING CONFIGURATION
+# ===============================================================
+booking:
+  confirmation:
+    timeout: 60000         # 60 seconds timeout for booking confirmation
+    retry-attempts: 3
+    retry-delay: 5000      # 5 seconds delay between retries
+  
+  cancellation:
+    allowed-before-hours: 24  # Allow cancellation 24 hours before travel
+    refund-percentage: 85     # 85% refund for timely cancellations
+  
+  modification:
+    allowed-before-hours: 12  # Allow modifications 12 hours before travel
+    modification-fee: 25.00   # Modification fee in TRY
+
+# ===============================================================
+# NOTIFICATION CONFIGURATION
+# ===============================================================
+notification:
+  enabled: true
+  channels:
+    email:
+      enabled: true
+      smtp:
+        host: ${SMTP_HOST:smtp.gmail.com}
+        port: 587
+        username: ${SMTP_USERNAME:}
+        password: ${SMTP_PASSWORD:}
+        auth: true
+        starttls: true
+    sms:
+      enabled: true
+      provider: twilio
+      account-sid: ${TWILIO_ACCOUNT_SID:}
+      auth-token: ${TWILIO_AUTH_TOKEN:}
+      from-number: ${TWILIO_FROM_NUMBER:}
+    push:
+      enabled: true
+      provider: firebase
+      server-key: ${FIREBASE_SERVER_KEY:}
+
+# ===============================================================
+# DOCUMENT GENERATION CONFIGURATION
+# ===============================================================
+document:
+  pdf:
+    enabled: true
+    template-path: /templates/pdf/
+    font-path: /fonts/
+    logo-path: /images/woltaxi-logo.png
+  
+  qr-code:
+    enabled: true
+    size: 200              # QR code size in pixels
+    format: PNG
+    error-correction: M    # Error correction level
+  
+  storage:
+    path: ${DOCUMENT_STORAGE_PATH:/var/woltaxi/documents/}
+    retention-days: 365    # Keep documents for 1 year
+
+# ===============================================================
+# INTEGRATION SERVICES
+# ===============================================================
+integration:
+  payment-hub:
+    base-url: ${PAYMENT_HUB_URL:http://localhost:8086}
+    timeout: 30s
+    retry-attempts: 3
+  
+  subscription-service:
+    base-url: ${SUBSCRIPTION_SERVICE_URL:http://localhost:8085}
+    timeout: 20s
+  
+  notification-service:
+    base-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8087}
+    timeout: 15s
+
+# ===============================================================
+# CACHING CONFIGURATION
+# ===============================================================
+cache:
+  flight-search:
+    ttl: PT15M              # Cache flight search results for 15 minutes
+    max-size: 1000
+  
+  hotel-availability:
+    ttl: PT30M              # Cache hotel availability for 30 minutes
+    max-size: 500
+  
+  bus-schedules:
+    ttl: PT60M              # Cache bus schedules for 1 hour
+    max-size: 200
+  
+  car-rental-rates:
+    ttl: PT45M              # Cache car rental rates for 45 minutes
+    max-size: 300
+
+# ===============================================================
+# SECURITY & ENCRYPTION
+# ===============================================================
+security:
+  encryption:
+    algorithm: AES-256-GCM
+    key-size: 256
+    iv-size: 16
+  jwt:
+    secret: ${JWT_SECRET:woltaxi_travel_integration_super_secret_key_2024}
+    expiration: 86400000
+    refresh-expiration: 604800000
+  booking-data:
+    encryption-enabled: true
+    pii-masking: true       # Mask personally identifiable information in logs
+
+# ===============================================================
+# API DOCUMENTATION
+# ===============================================================
+springdoc:
+  api-docs:
+    path: /api/v1/travel/api-docs
+  swagger-ui:
+    path: /api/v1/travel/swagger-ui.html
+    operationsSorter: method
+    disable-swagger-default-url: true
+  info:
+    title: WOLTAXI Travel Integration API
+    description: Comprehensive Tourism & Travel Integration Platform
+    version: 1.0.0
+    contact:
+      name: WOLTAXI Development Team
+      email: dev@woltaxi.com
+
+# ===============================================================
+# FEATURE FLAGS
+# ===============================================================
+features:
+  multi-city-flights: true
+  hotel-packages: true
+  car-rental-integration: true
+  bus-seat-selection: true
+  mobile-check-in: true
+  loyalty-points: true
+  group-bookings: true
+  corporate-discounts: true
+  real-time-notifications: true
+  multi-language-support: true
