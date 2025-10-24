@@ -1,0 +1,58 @@
+# WOLTAXI User Service - MongoDB Atlas Production Profile
+spring:
+  application:
+    name: user-service
+  
+  profiles:
+    active: atlas
+    
+  data:
+    mongodb:
+      # MongoDB Atlas Connection String
+      # Format: mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
+      uri: mongodb+srv://${ATLAS_USERNAME:woltaxi-admin}:${ATLAS_PASSWORD:your-password}@${ATLAS_CLUSTER:woltaxi-cluster}.mongodb.net/${ATLAS_DATABASE:woltaxi_users}?retryWrites=true&w=majority&ssl=true
+      database: woltaxi_users
+      auto-index-creation: true
+      
+  # Atlas specific settings
+  data:
+    mongodb:
+      options:
+        max-pool-size: 50
+        min-pool-size: 10
+        max-idle-time: 60000
+        max-life-time: 120000
+        connect-timeout: 10000
+        socket-timeout: 5000
+        server-selection-timeout: 5000
+        heartbeat-frequency: 10000
+
+# Atlas Security Settings
+atlas:
+  security:
+    connection-timeout: 10000
+    read-timeout: 30000
+    ssl-enabled: true
+    auth-mechanism: SCRAM-SHA-1
+    
+# Logging for Atlas
+logging:
+  level:
+    org.springframework.data.mongodb: DEBUG
+    org.mongodb.driver: INFO
+    com.woltaxi.user: DEBUG
+    root: INFO
+
+# Atlas Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,mongodb
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true

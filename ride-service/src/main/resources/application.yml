@@ -1,45 +1,172 @@
 server:
   port: 8082
+  undertow:
+    threads:
+      worker: 100
+      io: 8
 
 spring:
   application:
     name: ride-service
     
   datasource:
-    url: jdbc:postgresql://localhost:5432/woltaxi_rides
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/woltaxi_rides
     username: ${DB_USERNAME:woltaxi_user}
     password: ${DB_PASSWORD:woltaxi_2024}
-    
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      
   jpa:
     hibernate:
       ddl-auto: update
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          batch_size: 25
+    
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:woltaxi_redis_2024}
+    database: 3
     
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+    consumer:
+      group-id: ride-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: latest
+      properties:
+        spring.json.trusted.packages: "com.woltaxi.ride.dto,com.woltaxi.common.dto"
+        
+  security:
+    jwt:
+      secret: ${JWT_SECRET:woltaxi-ride-secret-2024-enterprise}
+      expiration: 86400000
 
+# Eureka Configuration
 eureka:
   client:
     service-url:
-      defaultZone: http://woltaxi-admin:woltaxi-2024-secure@localhost:8761/eureka/
+      defaultZone: http://woltaxi-admin:${EUREKA_PASSWORD:woltaxi-2024-secure}@${EUREKA_HOST:localhost}:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
     
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    metadata-map:
+      version: "2.0.0"
+      service-type: "ride-management"
+      cluster: "woltaxi-main"
+
+# Management Endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,refresh
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    com.woltaxi.ride: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.kafka: INFO
+    root: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+
+# OpenFeign Configuration
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 10000
+      user-service:
+        connectTimeout: 3000
+        readTimeout: 5000
+      driver-service:
+        connectTimeout: 3000
+        readTimeout: 5000
+      payment-service:
+        connectTimeout: 5000
+        readTimeout: 15000
+
+# WOLTAXI Ride Service Configuration
 woltaxi:
   ride:
+    version: "2.0.0"
+    
+    # Matching Algorithm
     matching:
       radius-km: 5.0
-      max-wait-time: 300
+      max-wait-time-seconds: 300
+      algorithm: "smart-matching"
       priority-factors:
-        - distance
-        - driver-rating
-        - vehicle-type
-        - user-preference
-    
+        - distance: 0.4
+        - driver-rating: 0.3
+        - vehicle-type: 0.2
+        - user-preference: 0.1
+      max-concurrent-requests: 3
+      
+    # Pricing Configuration
     pricing:
       base-fare: 15.0
-      per-km: 8.0
-      per-minute: 3.0
+      per-km-rate: 8.0
+      per-minute-rate: 3.0
       minimum-fare: 40.0
       surge-multiplier-max: 3.0
+      surge-calculation: "demand-based"
+      currency: "TRY"
+      
+    # Ride Management
+    management:
+      cancellation-fee-time-limit: 300
+      cancellation-fee-amount: 10.0
+      no-show-timeout: 600
+      ride-timeout: 3600
+      otp-verification: true
+      
+    # Real-time Updates
+    realtime:
+      websocket-enabled: true
+      location-update-interval: 5
+      status-broadcast: true
+      eta-calculation: true
+      
+    # Safety Features
+    safety:
+      emergency-contact: true
+      ride-sharing: true
+      driver-photo-verification: true
+      license-plate-verification: true
+      panic-button: true
+      
+    # Analytics
+    analytics:
+      track-ride-metrics: true
+      performance-monitoring: true
+      user-behavior-analysis: true
+      driver-performance-tracking: true

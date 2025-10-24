@@ -2,114 +2,91 @@ package com.woltaxi.gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsWebFilter;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * WOLTAXI API Gateway Application
  * 
- * Bu sınıf WOLTAXI mikroservis mimarisinin merkezi giriş noktasıdır.
- * Tüm istemci istekleri bu gateway üzerinden ilgili servislere yönlendirilir.
+ * Main entry point for the WOLTAXI Enterprise API Gateway Service
+ * 
+ * Features:
+ * - Centralized routing for all microservices
+ * - JWT-based authentication and authorization
+ * - Rate limiting and circuit breakers
+ * - CORS handling
+ * - Request/Response logging and monitoring
+ * - Service discovery integration
  * 
  * @author WOLTAXI Development Team
  * @version 2.0.0
+ * @since 2024
  */
 @SpringBootApplication
-@EnableDiscoveryClient
+@EnableEurekaClient
 public class ApiGatewayApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(ApiGatewayApplication.class, args);
+        System.out.println("🌐 WOLTAXI API Gateway started successfully!");
+        System.out.println("📡 Service Discovery: Enabled");
+        System.out.println("🔐 JWT Authentication: Enabled");
+        System.out.println("🚦 Rate Limiting: Enabled");
+        System.out.println("🔄 Circuit Breakers: Enabled");
+        System.out.println("📊 Monitoring: Enabled");
     }
 
     /**
-     * Gateway Route Yapılandırması
-     * 
-     * Bu metod tüm mikroservislere yönlendirme kurallarını tanımlar.
-     * Her servis için özel yollar ve filtreler uygulanır.
+     * Additional CORS configuration for global handling
+     */
+    @Bean
+    public CorsWebFilter corsWebFilter() {
+        CorsConfiguration corsConfig = new CorsConfiguration();
+        corsConfig.setAllowedOriginPatterns(Collections.singletonList("*"));
+        corsConfig.setMaxAge(3600L);
+        corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        corsConfig.setAllowedHeaders(Collections.singletonList("*"));
+        corsConfig.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", corsConfig);
+
+        return new CorsWebFilter(source);
+    }
+
+    /**
+     * Custom route locator for programmatic route configuration
+     * This complements the YAML-based route configuration
      */
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
-            // User Service Routes
-            .route("user-service", r -> r.path("/api/users/**")
-                .filters(f -> f
-                    .stripPrefix(1)
-                    .addRequestHeader("X-Gateway-Service", "user-service")
-                    .circuitBreaker(c -> c
-                        .setName("user-service-cb")
-                        .setFallbackUri("forward:/fallback/user")))
-                .uri("lb://user-service"))
-                
-            // Ride Service Routes
-            .route("ride-service", r -> r.path("/api/rides/**")
-                .filters(f -> f
-                    .stripPrefix(1)
-                    .addRequestHeader("X-Gateway-Service", "ride-service")
-                    .circuitBreaker(c -> c
-                        .setName("ride-service-cb")
-                        .setFallbackUri("forward:/fallback/ride")))
+            // Health check aggregation route
+            .route("health-check", r -> r.path("/health/**")
+                .filters(f -> f.stripPrefix(1))
+                .uri("http://localhost:8761")) // Eureka server health
+            
+            // WebSocket routes for real-time features
+            .route("websocket-rides", r -> r.path("/ws/rides/**")
+                .and().header("Upgrade", "websocket")
                 .uri("lb://ride-service"))
-                
-            // Driver Service Routes
-            .route("driver-service", r -> r.path("/api/drivers/**")
-                .filters(f -> f
-                    .stripPrefix(1)
-                    .addRequestHeader("X-Gateway-Service", "driver-service")
-                    .circuitBreaker(c -> c
-                        .setName("driver-service-cb")
-                        .setFallbackUri("forward:/fallback/driver")))
+            
+            .route("websocket-location", r -> r.path("/ws/location/**")
+                .and().header("Upgrade", "websocket")
                 .uri("lb://driver-service"))
                 
-            // Payment Service Routes
-            .route("payment-service", r -> r.path("/api/payments/**")
-                .filters(f -> f
-                    .stripPrefix(1)
-                    .addRequestHeader("X-Gateway-Service", "payment-service")
-                    .circuitBreaker(c -> c
-                        .setName("payment-service-cb")
-                        .setFallbackUri("forward:/fallback/payment")))
-                .uri("lb://payment-service"))
-                
-            // Location Service Routes
-            .route("location-service", r -> r.path("/api/locations/**")
-                .filters(f -> f
-                    .stripPrefix(1)
-                    .addRequestHeader("X-Gateway-Service", "location-service")
-                    .circuitBreaker(c -> c
-                        .setName("location-service-cb")
-                        .setFallbackUri("forward:/fallback/location")))
-                .uri("lb://location-service"))
-                
-            // AI Matching Service Routes
-            .route("ai-matching-service", r -> r.path("/api/matching/**")
-                .filters(f -> f
-                    .stripPrefix(1)
-                    .addRequestHeader("X-Gateway-Service", "ai-matching-service")
-                    .circuitBreaker(c -> c
-                        .setName("ai-matching-service-cb")
-                        .setFallbackUri("forward:/fallback/matching")))
-                .uri("lb://ai-matching-service"))
-                
-            // Notification Service Routes
-            .route("notification-service", r -> r.path("/api/notifications/**")
-                .filters(f -> f
-                    .stripPrefix(1)
-                    .addRequestHeader("X-Gateway-Service", "notification-service")
-                    .circuitBreaker(c -> c
-                        .setName("notification-service-cb")
-                        .setFallbackUri("forward:/fallback/notification")))
-                .uri("lb://notification-service"))
-                
-            // Admin Panel Routes
-            .route("admin-service", r -> r.path("/api/admin/**")
-                .filters(f -> f
-                    .stripPrefix(1)
-                    .addRequestHeader("X-Gateway-Service", "admin-service")
-                    .addRequestHeader("X-Require-Admin", "true"))
-                .uri("lb://admin-service"))
+            // File upload routes with size limits
+            .route("file-upload", r -> r.path("/api/v1/files/**")
+                .filters(f -> f.requestSize(50000000L)) // 50MB limit
+                .uri("lb://user-service"))
                 
             .build();
     }

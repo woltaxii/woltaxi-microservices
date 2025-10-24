@@ -27,6 +27,17 @@ spring:
     password: ${REDIS_PASSWORD:}
     database: 1
     
+  data:
+    mongodb:
+      # Local MongoDB (for development)
+      # uri: mongodb://${MONGO_USERNAME:woltaxi}:${MONGO_PASSWORD:woltaxi2024}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DATABASE:woltaxi_users}?authSource=admin
+      
+      # MongoDB Atlas (for production) - Your Atlas connection
+      uri: mongodb+srv://woltaxi_db_user:${ATLAS_PASSWORD:your-db-password}@cluster0.q9ezcyu.mongodb.net/${ATLAS_DATABASE:woltaxi_users}?retryWrites=true&w=majority
+      
+      database: woltaxi_users
+      auto-index-creation: true
+    
   security:
     jwt:
       secret: ${JWT_SECRET:woltaxi-user-secret-2024}
