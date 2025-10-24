@@ -49,7 +49,7 @@ function Write-Warning-Log {
 function Test-MongoConnection {
     try {
         $testCmd = "mongosh --host `"$MONGO_HOST`:$MONGO_PORT`" --username `"$MONGO_USERNAME`" --password `"$MONGO_PASSWORD`" --authenticationDatabase admin --eval `"db.adminCommand('ping')`" --quiet"
-        $result = Invoke-Expression $testCmd 2>$null
+        Invoke-Expression $testCmd 2>$null | Out-Null
         return $true
     }
     catch {
@@ -69,7 +69,7 @@ function Backup-Database {
     try {
         $mongodumpCmd = "mongodump --host `"$MONGO_HOST`:$MONGO_PORT`" --username `"$MONGO_USERNAME`" --password `"$MONGO_PASSWORD`" --authenticationDatabase admin --db `"$DatabaseName`" --out `"$BackupPath`" --gzip"
         
-        $result = Invoke-Expression $mongodumpCmd 2>&1
+        Invoke-Expression $mongodumpCmd 2>&1 | Out-Host
         
         if ($LASTEXITCODE -eq 0) {
             Write-Log "✅ Successfully backed up $DatabaseName"

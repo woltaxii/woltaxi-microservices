@@ -128,7 +128,7 @@ function Get-CollectionList {
         [string]$DatabaseName
     )
     
-    Write-Host "📂 Collections in $DatabaseName:" -ForegroundColor Green
+    Write-Host "📂 Collections in ${DatabaseName}:" -ForegroundColor Green
     Write-Host "================================" -ForegroundColor Green
     
     $command = "db.runCommand('listCollections')"
@@ -194,7 +194,7 @@ function Get-DatabaseStats {
         [string]$DatabaseName
     )
     
-    Write-Host "📈 Database Statistics for $DatabaseName:" -ForegroundColor Green
+    Write-Host "📈 Database Statistics for ${DatabaseName}:" -ForegroundColor Green
     Write-Host "========================================" -ForegroundColor Green
     
     $statsCommand = "db.stats()"
