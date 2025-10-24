@@ -1,0 +1,24 @@
+# Caddy v2 configuration for WOLTAXI on Windows
+# This reverse proxies public HTTPS traffic to the local API Gateway
+
+woltaxi.com, www.woltaxi.com, api.woltaxi.com {
+  encode zstd gzip
+
+  @api {
+    path /api/*
+  }
+
+  # Forward everything (or restrict to @api if you want only API paths)
+  reverse_proxy localhost:8765
+
+  # Security headers
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "no-referrer-when-downgrade"
+  }
+
+  # Optional: replace with your email for ACME/Let's Encrypt notices
+  tls admin@woltaxi.com
+}
