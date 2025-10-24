@@ -541,6 +541,185 @@ services:
       retries: 3
       start_period: 60s
 
+  # AI/ML Service - Comprehensive Machine Learning Platform
+  ai-ml-service:
+    build: 
+      context: ./ai-ml-service
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    ports:
+      - "8094:8094"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi_aiml
+      - SPRING_DATASOURCE_USERNAME=woltaxi_user
+      - SPRING_DATASOURCE_PASSWORD=woltaxi_2024
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=woltaxi_redis_2024
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JWT_SECRET=woltaxi-aiml-secret-2024
+      # AI/ML Framework Configuration
+      - TENSORFLOW_VERSION=2.15.0
+      - OPENCV_VERSION=4.8.0
+      - PYTHON_PATH=/usr/bin/python3
+      # OpenAI Integration
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-your-openai-api-key}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4}
+      # Google Cloud AI
+      - GOOGLE_CLOUD_PROJECT_ID=${GOOGLE_CLOUD_PROJECT_ID:-woltaxi-ai-ml}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-/app/gcp-credentials.json}
+      - GOOGLE_VISION_API_KEY=${GOOGLE_VISION_API_KEY:-your-google-vision-api-key}
+      - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY:-your-google-translate-api-key}
+      # Azure Cognitive Services
+      - AZURE_COGNITIVE_SERVICES_KEY=${AZURE_COGNITIVE_SERVICES_KEY:-your-azure-cognitive-key}
+      - AZURE_REGION=${AZURE_REGION:-eastus}
+      - AZURE_COGNITIVE_SERVICES_ENDPOINT=${AZURE_COGNITIVE_SERVICES_ENDPOINT:-your-azure-endpoint}
+      # Hugging Face Models
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY:-your-huggingface-api-key}
+      - HUGGINGFACE_MODEL_CACHE_DIR=/app/models/huggingface
+      # Performance and Security
+      - JAVA_OPTS=-Xmx3072m -Xms1536m -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport
+      - AI_ML_MAX_REQUEST_SIZE=100MB
+      - AI_ML_MODEL_CACHE_SIZE=2GB
+      - AI_ML_PROCESSING_THREADS=8
+      - SECURITY_ENCRYPTION_KEY=${AI_ML_ENCRYPTION_KEY:-woltaxi-aiml-encryption-2024}
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus,ai-ml
+    volumes:
+      - ./ai-ml-service/logs:/app/logs
+      - ./ai-ml-service/models:/app/models
+      - ./ai-ml-service/cache:/app/cache
+      - ./ai-ml-service/temp:/app/temp
+      - ./credentials/gcp-credentials.json:/app/gcp-credentials.json:ro
+      - ./credentials/azure-credentials.json:/app/azure-credentials.json:ro
+    networks:
+      - woltaxi-network
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8094/actuator/health"]
+      interval: 45s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+
+  # Smart Vehicle Service - Future-Ready Smart Car Integration
+  smart-vehicle-service:
+    build: 
+      context: ./smart-vehicle-service
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    ports:
+      - "8095:8095"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/woltaxi_smartvehicle
+      - SPRING_DATASOURCE_USERNAME=woltaxi_user
+      - SPRING_DATASOURCE_PASSWORD=woltaxi_2024
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=woltaxi_redis_2024
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - JWT_SECRET=woltaxi-smartvehicle-secret-2024
+      # AI/ML Integration for Autonomous Driving
+      - TENSORFLOW_VERSION=2.15.0
+      - OPENCV_VERSION=4.8.0
+      - DEEPLEARNING4J_VERSION=1.0.0-M2.1
+      # IoT and Vehicle Communication
+      - MQTT_BROKER_URL=tcp://localhost:1883
+      - MQTT_CLIENT_ID=woltaxi-smart-vehicle
+      - MQTT_USERNAME=woltaxi
+      - MQTT_PASSWORD=smartvehicle2025
+      # V2X Communication Configuration
+      - V2X_DSRC_ENABLED=true
+      - V2X_CELLULAR_V2X_ENABLED=true
+      - V2X_RANGE_METERS=2000
+      - V2X_SECURITY_CERTIFICATE_PATH=/app/certs/v2x-cert.pem
+      # Autonomous Driving Configuration
+      - AUTONOMOUS_SAFETY_LEVEL=maximum
+      - AUTONOMOUS_MAX_SPEED_KMH=120
+      - AUTONOMOUS_MIN_FOLLOWING_DISTANCE_M=3.5
+      - AUTONOMOUS_EMERGENCY_BRAKE_DISTANCE_M=2.0
+      # AI Model Paths
+      - AI_MODELS_OBJECT_DETECTION=models/yolo-v8-vehicle.onnx
+      - AI_MODELS_LANE_DETECTION=models/lane-detection.h5
+      - AI_MODELS_TRAFFIC_SIGN_RECOGNITION=models/traffic-signs.pb
+      - AI_MODELS_DRIVER_MONITORING=models/driver-attention.onnx
+      - AI_MODELS_PATH_PLANNING=models/path-planner.h5
+      # Cloud AI Services
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-your-openai-api-key}
+      - GOOGLE_CLOUD_PROJECT_ID=${GOOGLE_CLOUD_PROJECT_ID:-woltaxi-smart-vehicle}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-credentials.json
+      - AZURE_COGNITIVE_SERVICES_KEY=${AZURE_COGNITIVE_SERVICES_KEY:-your-azure-cognitive-key}
+      - AZURE_REGION=${AZURE_REGION:-eastus}
+      # Performance and Security
+      - JAVA_OPTS=-Xmx4096m -Xms2048m -XX:+UseG1GC -XX:+UseContainerSupport
+      - SMART_VEHICLE_MAX_REQUEST_SIZE=200MB
+      - SMART_VEHICLE_MODEL_CACHE_SIZE=3GB
+      - SMART_VEHICLE_PROCESSING_THREADS=12
+      - SMART_VEHICLE_ENCRYPTION_LEVEL=AES-256
+      - SMART_VEHICLE_SECURITY_CERTIFICATE_PATH=/app/certs/smart-vehicle-cert.pem
+      - SMART_VEHICLE_INTRUSION_DETECTION_ACTIVE=true
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus,smart-vehicle
+    volumes:
+      - ./smart-vehicle-service/logs:/app/logs
+      - ./smart-vehicle-service/models:/app/models
+      - ./smart-vehicle-service/cache:/app/cache
+      - ./smart-vehicle-service/certs:/app/certs
+      - ./smart-vehicle-service/temp:/app/temp
+      - ./credentials/gcp-credentials.json:/app/gcp-credentials.json:ro
+      - ./credentials/azure-credentials.json:/app/azure-credentials.json:ro
+      - ./certificates/v2x-cert.pem:/app/certs/v2x-cert.pem:ro
+      - ./certificates/smart-vehicle-cert.pem:/app/certs/smart-vehicle-cert.pem:ro
+    networks:
+      - woltaxi-network
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_started
+      ai-ml-service:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8095/actuator/health"]
+      interval: 45s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 5G
+          cpus: '3.0'
+        reservations:
+          memory: 3G
+          cpus: '1.5'
+
 networks:
   woltaxi-network:
     driver: bridge

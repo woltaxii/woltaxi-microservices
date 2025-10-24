@@ -1,0 +1,109 @@
+{
+  "folders": [
+    {
+      "name": "🏢 WOLTAXI Backend Services",
+      "path": "./"
+    },
+    {
+      "name": "🔧 Infrastructure",
+      "path": "./eureka-server"
+    },
+    {
+      "name": "👥 User Service", 
+      "path": "./user-service"
+    },
+    {
+      "name": "🚗 Driver Service",
+      "path": "./driver-service"
+    },
+    {
+      "name": "🛣️ Ride Service",
+      "path": "./ride-service"
+    },
+    {
+      "name": "💳 Payment Hub",
+      "path": "./payment-hub-service"
+    },
+    {
+      "name": "🚨 Emergency Service",
+      "path": "./emergency-service"
+    },
+    {
+      "name": "✈️ Travel Integration",
+      "path": "./travel-integration-service"
+    },
+    {
+      "name": "🏍️ WolKurye Service",
+      "path": "./wolkurye-service"
+    },
+    {
+      "name": "🤖 AI/ML Service",
+      "path": "./ai-ml-service"
+    },
+    {
+      "name": "🚗🤖 Smart Vehicle Service",
+      "path": "./smart-vehicle-service"
+    },
+    {
+      "name": "📊 Analytics Service",
+      "path": "./analytics-service"
+    },
+    {
+      "name": "🌍 Global Performance",
+      "path": "./global-performance-service"
+    },
+    {
+      "name": "📢 Marketing Service",
+      "path": "./marketing-service"
+    },
+    {
+      "name": "💎 Subscription Service",
+      "path": "./subscription-service"
+    },
+    {
+      "name": "🌐 API Gateway",
+      "path": "./api-gateway"
+    }
+  ],
+  "settings": {
+    "typescript.validate.enable": true,
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.dependency.syncWithFolderExplorer": true,
+    "maven.terminal.useJavaHome": true,
+    "spring-boot.ls.problem.application-properties.enabled": true,
+    "yaml.validate": true,
+    "docker.enableDockerComposeV2": true,
+    "files.exclude": {
+      "**/mobile-app": true,
+      "**/driver-mobile-app": true,
+      "**/node_modules": true,
+      "**/target": true,
+      "**/build": true,
+      "**/dist": true,
+      "**/.git": true,
+      "**/.DS_Store": true,
+      "**/Thumbs.db": true
+    },
+    "search.exclude": {
+      "**/mobile-app": true,
+      "**/driver-mobile-app": true,
+      "**/node_modules": true,
+      "**/target": true,
+      "**/build": true,
+      "**/dist": true,
+      "**/.git": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "redhat.java",
+      "vscjava.vscode-java-pack",
+      "vmware.vscode-spring-boot",
+      "ms-vscode.vscode-typescript-next",
+      "bradlc.vscode-tailwindcss",
+      "ms-vscode.vscode-docker",
+      "redhat.vscode-yaml"
+    ]
+  }
+}

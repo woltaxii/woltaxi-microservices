@@ -1,0 +1,280 @@
+server:
+  port: 8095
+
+spring:
+  application:
+    name: smart-vehicle-service
+  
+  datasource:
+    url: jdbc:h2:mem:smartvehicledb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+    
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # WebSocket Configuration
+  websocket:
+    allowed-origins: "*"
+    
+  # MQTT Configuration for Vehicle Communication
+  mqtt:
+    broker:
+      url: tcp://localhost:1883
+      client-id: woltaxi-smart-vehicle
+      username: woltaxi
+      password: smartvehicle2025
+      
+  # Security Configuration
+  security:
+    oauth2:
+      client:
+        registration:
+          woltaxi:
+            client-id: woltaxi-smart-vehicle-client
+            client-secret: smart-vehicle-secret-2025
+            scope: read,write
+            authorization-grant-type: client_credentials
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
+# Smart Vehicle Configuration
+smart-vehicle:
+  # Autonomous Driving Settings
+  autonomous:
+    enabled: true
+    safety-level: maximum
+    max-speed: 120 # km/h
+    min-following-distance: 3.5 # meters
+    emergency-brake-distance: 2.0 # meters
+    
+  # IoT & Sensor Configuration
+  iot:
+    sensors:
+      - name: "lidar"
+        enabled: true
+        refresh-rate: 100 # Hz
+      - name: "camera"
+        enabled: true
+        refresh-rate: 30 # FPS
+      - name: "radar"
+        enabled: true
+        refresh-rate: 50 # Hz
+      - name: "gps"
+        enabled: true
+        refresh-rate: 10 # Hz
+      - name: "accelerometer"
+        enabled: true
+        refresh-rate: 100 # Hz
+      - name: "gyroscope"
+        enabled: true
+        refresh-rate: 100 # Hz
+        
+  # AI/ML Model Configuration
+  ai:
+    # Model paths and configurations
+    models:
+      # Computer Vision Models
+      object-detection: "models/yolo-v8-vehicle.onnx"
+      lane-detection: "models/lane-detection.h5"
+      traffic-sign-recognition: "models/traffic-signs.pb"
+      driver-monitoring: "models/driver-attention.onnx"
+      pedestrian-detection: "models/pedestrian-yolo.onnx"
+      vehicle-classification: "models/vehicle-classifier.h5"
+      # Path Planning Models
+      path-planning: "models/path-planner.h5"
+      route-optimization: "models/route-optimizer.pb"
+      traffic-prediction: "models/traffic-predictor.h5"
+      # Sensor Fusion Models
+      sensor-fusion: "models/sensor-fusion-nn.onnx"
+      kalman-filter: "models/kalman-params.json"
+      # Decision Making Models
+      decision-tree: "models/autonomous-decisions.pkl"
+      reinforcement-learning: "models/rl-driving-policy.h5"
+      
+    # Processing Configuration
+    processing:
+      # GPU/CPU configuration
+      use-gpu: true
+      gpu-memory-fraction: 0.7
+      num-threads: 4
+      batch-size: 8
+      
+      # Computer Vision Processing
+      computer-vision:
+        enabled: true
+        frame-rate: 30 # FPS
+        resolution: "1920x1080"
+        confidence-threshold: 0.7
+        nms-threshold: 0.5
+        max-objects: 50
+        processing-timeout: 100 # milliseconds
+        
+      # Sensor Fusion Processing  
+      sensor-fusion:
+        enabled: true
+        fusion-rate: 50 # Hz
+        sensor-timeout: 200 # milliseconds
+        agreement-threshold: 0.8
+        consistency-threshold: 0.75
+        outlier-detection: true
+        error-correction: true
+        
+      # Path Planning Processing
+      path-planning:
+        enabled: true
+        planning-horizon: 5.0 # seconds
+        replanning-interval: 500 # milliseconds
+        safety-margin: 2.0 # meters
+        comfort-factor: 0.8
+        efficiency-weight: 0.6
+        safety-weight: 0.9
+        
+      # Obstacle Avoidance Processing
+      obstacle-avoidance:
+        enabled: true
+        detection-range: 100.0 # meters
+        reaction-time: 150 # milliseconds
+        min-safety-distance: 2.5 # meters
+        emergency-brake-threshold: 0.8
+        avoidance-aggressiveness: 0.6
+        
+    # Machine Learning Configuration
+    ml:
+      # Model update settings
+      auto-update: true
+      update-interval: 24 # hours
+      model-repository: "https://models.woltaxi.com/autonomous/"
+      
+      # Learning settings
+      online-learning: true
+      learning-rate: 0.001
+      adaptation-threshold: 0.05
+      experience-replay: true
+      replay-buffer-size: 10000
+      
+      # Performance monitoring
+      performance-tracking: true
+      accuracy-threshold: 0.85
+      latency-threshold: 200 # milliseconds
+      memory-usage-limit: 80 # percent
+      
+    # TensorFlow Configuration
+    tensorflow:
+      inter-op-parallelism: 4
+      intra-op-parallelism: 8
+      allow-soft-placement: true
+      log-device-placement: false
+      memory-growth: true
+      
+    # OpenCV Configuration  
+    opencv:
+      num-threads: 4
+      use-optimized: true
+      enable-opencl: true
+      
+    # DeepLearning4J Configuration
+    dl4j:
+      backend: "nd4j-cuda-11.8" # or "nd4j-native"
+      workspace-size: 2147483648 # 2GB
+      cache-mode: "DEVICE"
+      allocation-mode: "JAVACPP"
+      
+  # Vehicle Communication
+  communication:
+    v2v: # Vehicle to Vehicle
+      enabled: true
+      range: 1000 # meters
+      protocol: "dsrc" # Dedicated Short Range Communication
+    v2i: # Vehicle to Infrastructure
+      enabled: true
+      range: 2000 # meters
+      protocol: "cellular-v2x"
+    v2p: # Vehicle to Pedestrian
+      enabled: true
+      range: 100 # meters
+      protocol: "bluetooth-le"
+      
+  # Navigation & Routing
+  navigation:
+    route-optimization: true
+    real-time-traffic: true
+    predictive-routing: true
+    eco-routing: true
+    
+  # Vehicle Health Monitoring
+  monitoring:
+    engine:
+      temperature-threshold: 95 # Celsius
+      oil-pressure-min: 20 # PSI
+      rpm-max: 6000
+    battery:
+      voltage-min: 11.8 # Volts
+      charge-level-min: 20 # Percent
+    tires:
+      pressure-min: 30 # PSI
+      pressure-max: 35 # PSI
+      temperature-max: 85 # Celsius
+      
+  # Security Settings
+  security:
+    encryption: "AES-256"
+    authentication: "certificate-based"
+    intrusion-detection: true
+    secure-boot: true
+    
+# Logging Configuration
+logging:
+  level:
+    com.woltaxi.smartvehicle: DEBUG
+    org.springframework.security: INFO
+    org.tensorflow: WARN
+    org.deeplearning4j: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/smart-vehicle-service.log
+    
+# Management & Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Feign Configuration
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 10000
+        loggerLevel: basic
