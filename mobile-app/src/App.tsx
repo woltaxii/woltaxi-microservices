@@ -1,10 +1,10 @@
 /**
- * WOLTAXI Mobile Application
+ * WOLTAXI Mobile Application - Modern UI/UX Version
  * 
- * Ana uygulama bileşeni - Navigasyon, kimlik doğrulama ve 
- * uygulama durumu yönetimini içerir.
+ * Ana uygulama bileşeni - Modern navigasyon, kimlik doğrulama ve 
+ * gelişmiş UI/UX bileşenlerini içerir.
  * 
- * @version 2.0.0
+ * @version 3.0.0 - Modern UI/UX Update
  * @author WOLTAXI Development Team
  */
 
@@ -12,18 +12,21 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StatusBar, Platform, PermissionsAndroid, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import PushNotification from 'react-native-push-notification';
+import { StyleSheet, View, Text, Platform, PermissionsAndroid, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import LinearGradient from 'react-native-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Screens - Auth
+// Import Modern UI Components
+import WoltaxiModernUI from './components/WoltaxiModernUI';
+import RideBookingUI from './components/RideBookingUI';
+import DriverDashboard from './components/DriverDashboard';
+import AdminDashboard from './components/AdminDashboard';
+
+// Legacy Screens (fallback)
 import SplashScreen from './screens/auth/SplashScreen';
 import LoginScreen from './screens/auth/LoginScreen';
 import RegisterScreen from './screens/auth/RegisterScreen';
-
-// Screens - Main
 import HomeScreen from './screens/main/HomeScreen';
 import ProfileScreen from './screens/main/ProfileScreen';
 
@@ -40,50 +43,147 @@ interface User {
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// Modern Theme Colors
+const theme = {
+  colors: {
+    primary: '#6366F1',
+    secondary: '#8B5CF6',
+    success: '#10B981',
+    warning: '#F59E0B',
+    danger: '#EF4444',
+    dark: '#1F2937',
+    light: '#F9FAFB',
+    white: '#FFFFFF',
+    gray: '#6B7280',
+    background: '#F8FAFC',
+    tabActive: '#6366F1',
+    tabInactive: '#9CA3AF'
+  }
+};
+
 /**
- * Ana Sekme Navigasyonu
+ * Custom Tab Bar with Modern Design
+ */
+const CustomTabBar = ({ state, descriptors, navigation }: any) => {
+  return (
+    <View style={styles.tabBarContainer}>
+      <LinearGradient
+        colors={[theme.colors.white, theme.colors.light]}
+        style={styles.tabBarGradient}
+      >
+        <View style={styles.tabBar}>
+          {state.routes.map((route: any, index: number) => {
+            const { options } = descriptors[route.key];
+            const label = options.tabBarLabel !== undefined 
+              ? options.tabBarLabel 
+              : options.title !== undefined 
+              ? options.title 
+              : route.name;
+
+            const isFocused = state.index === index;
+
+            const onPress = () => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
+
+            // Tab icons mapping
+            const getTabIcon = (routeName: string) => {
+              switch (routeName) {
+                case 'Home':
+                  return 'dashboard';
+                case 'RideBooking':
+                  return 'local-taxi';
+                case 'Driver':
+                  return 'directions-car';
+                case 'Admin':
+                  return 'admin-panel-settings';
+                default:
+                  return 'home';
+              }
+            };
+
+            return (
+              <View key={index} style={styles.tabItem}>
+                {isFocused && (
+                  <LinearGradient
+                    colors={[theme.colors.primary, theme.colors.secondary]}
+                    style={styles.activeTabBackground}
+                  />
+                )}
+                <View 
+                  style={[
+                    styles.tabButton,
+                    isFocused && styles.activeTabButton
+                  ]}
+                >
+                  <Icon
+                    name={getTabIcon(route.name)}
+                    size={24}
+                    color={isFocused ? theme.colors.white : theme.colors.tabInactive}
+                    onPress={onPress}
+                  />
+                  <Text style={[
+                    styles.tabLabel,
+                    { color: isFocused ? theme.colors.white : theme.colors.tabInactive }
+                  ]}>
+                    {label}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </LinearGradient>
+    </View>
+  );
+};
+
+/**
+ * Modern Main Tab Navigator
  */
 const MainTabs: React.FC = () => {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: string;
-
-          switch (route.name) {
-            case 'Home':
-              iconName = 'home';
-              break;
-            case 'Profile':
-              iconName = 'person';
-              break;
-            default:
-              iconName = 'circle';
-          }
-
-          return <Icon name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#E30613',
-        tabBarInactiveTintColor: 'gray',
-        tabBarStyle: {
-          backgroundColor: 'white',
-          borderTopWidth: 1,
-          borderTopColor: '#E0E0E0',
-          height: Platform.OS === 'ios' ? 85 : 65,
-          paddingBottom: Platform.OS === 'ios' ? 25 : 10,
-        },
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
         headerShown: false,
-      })}
+      }}
     >
       <Tab.Screen 
         name="Home" 
-        component={HomeScreen}
-        options={{ tabBarLabel: 'Ana Sayfa' }}
+        component={WoltaxiModernUI}
+        options={{
+          tabBarLabel: 'Ana Sayfa',
+        }}
       />
       <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen}
-        options={{ tabBarLabel: 'Profil' }}
+        name="RideBooking" 
+        component={RideBookingUI}
+        options={{
+          tabBarLabel: 'Taksi Çağır',
+        }}
+      />
+      <Tab.Screen 
+        name="Driver" 
+        component={DriverDashboard}
+        options={{
+          tabBarLabel: 'Sürücü',
+        }}
+      />
+      <Tab.Screen 
+        name="Admin" 
+        component={AdminDashboard}
+        options={{
+          tabBarLabel: 'Yönetim',
+        }}
       />
     </Tab.Navigator>
   );
@@ -208,17 +308,12 @@ const App: React.FC = () => {
   }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar 
-        barStyle="dark-content" 
-        backgroundColor="white" 
-        translucent={false}
-      />
-      <NavigationContainer>
+    <NavigationContainer>
+      <View style={styles.container}>
         <Stack.Navigator
           screenOptions={{
             headerShown: false,
-            cardStyle: { backgroundColor: 'white' },
+            cardStyle: { backgroundColor: theme.colors.background },
           }}
         >
           {isAuthenticated ? (
@@ -227,9 +322,73 @@ const App: React.FC = () => {
             <Stack.Screen name="Auth" component={AuthStack} />
           )}
         </Stack.Navigator>
-      </NavigationContainer>
-    </SafeAreaProvider>
+      </View>
+    </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+
+  // Custom Tab Bar Styles
+  tabBarContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    elevation: 20,
+    shadowColor: theme.colors.dark,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  tabBarGradient: {
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    paddingBottom: Platform.OS === 'ios' ? 25 : 15, // Safe area for home indicator
+  },
+  tabBar: {
+    flexDirection: 'row',
+    paddingTop: 15,
+    paddingHorizontal: 20,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  activeTabBackground: {
+    position: 'absolute',
+    top: -5,
+    left: '20%',
+    right: '20%',
+    height: 50,
+    borderRadius: 25,
+    zIndex: 0,
+  },
+  tabButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    minHeight: 45,
+    zIndex: 1,
+  },
+  activeTabButton: {
+    // Active state styling handled by gradient background
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+});
 
 export default App;
